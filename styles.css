@@ -1,8 +1,96 @@
-/*
+.base-graph {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	/* Embedded bases have no fixed height, so fall back to the view's height option. */
+	min-height: var(--base-graph-height, 400px);
+	overflow: hidden;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.base-graph-canvas-host {
+	position: absolute;
+	inset: 0;
+}
 
-If your plugin does not need CSS, delete this file.
+.base-graph-canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	touch-action: none;
+}
 
-*/
+.base-graph-canvas.is-hovering-node {
+	cursor: pointer;
+}
+
+.base-graph-probe {
+	display: none;
+}
+
+.base-graph-controls {
+	position: absolute;
+	top: var(--size-4-2);
+	right: var(--size-4-2);
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) var(--size-4-2);
+	background-color: var(--background-primary);
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.base-graph-depth {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.base-graph-depth input[type='range'] {
+	width: 90px;
+}
+
+.base-graph-depth-value {
+	min-width: 1ch;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+}
+
+.base-graph-footer {
+	position: absolute;
+	left: var(--size-4-2);
+	right: var(--size-4-2);
+	bottom: var(--size-4-2);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-2);
+	pointer-events: none;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.base-graph-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-2) var(--size-4-3);
+}
+
+.base-graph-legend-item {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+}
+
+.base-graph-legend-swatch {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--swatch-color);
+}
+
+.base-graph-status.mod-warning {
+	color: var(--text-warning);
+}

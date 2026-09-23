@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
-	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"name": "obsidian-base-graph",
+	"version": "0.1.0",
+	"description": "Graph view for Obsidian Bases",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -14,14 +14,24 @@
 	"license": "0-BSD",
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
+		"@types/d3-force": "^3.0.10",
+		"@types/d3-quadtree": "^3.0.6",
+		"@types/d3-selection": "^3.0.12",
+		"@types/d3-zoom": "^3.0.8",
 		"@types/node": "^22.15.17",
 		"esbuild": "0.25.5",
 		"eslint": "^9.39.4",
 		"eslint-plugin-obsidianmd": "^0.4.0",
 		"globals": "^17.6.0",
 		"jiti": "^2.6.1",
-		"obsidian": "latest",
+		"obsidian": "^1.13.1",
 		"typescript": "^5.8.3",
 		"typescript-eslint": "^8.59.1"
+	},
+	"dependencies": {
+		"d3-force": "^3.0.0",
+		"d3-quadtree": "^3.0.1",
+		"d3-selection": "^3.0.0",
+		"d3-zoom": "^3.0.0"
 	}
 }
