@@ -20,3 +20,9 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Demo vault: `npm run demo` copies the build in; Obsidian writes its own state
+demo-vault/.obsidian/plugins/
+demo-vault/.obsidian/workspace*.json
+demo-vault/.obsidian/graph.json
+demo-vault/.obsidian/appearance.json

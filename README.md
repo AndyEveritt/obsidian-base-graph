@@ -2,6 +2,8 @@
 
 Adds a **Graph** view to [Obsidian Bases](https://help.obsidian.md/bases). The notes a base returns are drawn as a force-directed graph, like the core graph view.
 
+![Base Graph demo](docs/demo.gif)
+
 - **Filters:** use the normal Bases toolbar to add, edit and remove filters. The graph updates as you change them.
 - **Depth:** like the local graph, also show notes up to _n_ links away from the base's results. Choose whether to follow links, backlinks or both.
 - **Groups:** if the base is grouped, each group gets its own colour and appears in the legend.

@@ -1,0 +1,19 @@
+filters:
+  and:
+    - file.hasProperty("type")
+views:
+  - type: base-graph
+    name: Graph
+    filters:
+      and:
+        - file.hasLink("Solar system/Sun.md")
+    groupBy:
+      property: type
+      direction: ASC
+    showArrows: false
+    depth: 0
+  - type: table
+    name: Table
+    order:
+      - file.name
+      - type

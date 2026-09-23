@@ -1,0 +1,23 @@
+filters:
+  and:
+    - type == "body"
+views:
+  - type: base-graph
+    name: Graph
+    groupBy:
+      property: category
+      direction: ASC
+    depth: 0
+  - type: base-graph
+    name: Visited by
+    groupBy:
+      property: category
+      direction: ASC
+    depth: 1
+    direction: incoming
+  - type: table
+    name: Table
+    order:
+      - file.name
+      - category
+      - orbits

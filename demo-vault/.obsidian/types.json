@@ -1,0 +1,7 @@
+{
+  "types": {
+    "launched": "number",
+    "agency": "multitext",
+    "targets": "multitext"
+  }
+}

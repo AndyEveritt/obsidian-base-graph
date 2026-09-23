@@ -1,0 +1,41 @@
+filters:
+  and:
+    - type == "mission"
+formulas:
+  target_count: targets.length
+properties:
+  note.mission_type:
+    displayName: Type
+  note.launched:
+    displayName: Launched
+  formula.target_count:
+    displayName: Targets visited
+views:
+  - type: base-graph
+    name: Graph
+    groupBy:
+      property: mission_type
+      direction: ASC
+    depth: 0
+    direction: outgoing
+    sizeProperty: formula.target_count
+    showArrows: true
+    height: 600
+  - type: base-graph
+    name: Since 2010
+    filters:
+      and:
+        - launched >= 2010
+    groupBy:
+      property: mission_type
+      direction: ASC
+    showUnresolved: true
+  - type: table
+    name: Table
+    order:
+      - file.name
+      - agency
+      - launched
+      - mission_type
+      - targets
+      - formula.target_count
