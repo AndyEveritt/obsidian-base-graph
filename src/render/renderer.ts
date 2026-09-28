@@ -24,7 +24,7 @@ import type {
 	LegendHighlight,
 } from '../graph/types';
 import type { DisplaySettings, ForceSettings } from '../view/options';
-import { forceCluster } from './clusterForce';
+import { forceCluster, forceClusterRepel } from './clusterForce';
 import type { LabelHit } from './clusterShapes';
 import { drawGraph, linkScale, nodeRadius } from './draw';
 import { ringRadii } from './rings';
@@ -294,6 +294,10 @@ export class GraphRenderer {
 					: null,
 			)
 			.force('cluster', forceCluster(f.clusterForce * 0.5))
+			.force(
+				'clusterRepel',
+				forceClusterRepel(f.clusterRepelForce * 2, (n) => nodeRadius(n, this.display)),
+			)
 			.force(
 				'collide',
 				forceCollide<GraphNode>((n) => nodeRadius(n, this.display) + 2),

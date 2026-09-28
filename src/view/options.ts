@@ -15,6 +15,7 @@ export interface ForceSettings {
 	linkForce: number;
 	linkDistance: number;
 	clusterForce: number;
+	clusterRepelForce: number;
 }
 
 export interface DisplaySettings {
@@ -67,6 +68,7 @@ const SLIDERS = {
 	linkForce: { min: 0, max: 1, step: 0.01, default: 1 },
 	linkDistance: { min: 30, max: 500, step: 10, default: 100 },
 	clusterForce: { min: 0, max: 1, step: 0.01, default: 0.5 },
+	clusterRepelForce: { min: 0, max: 1, step: 0.01, default: 0.5 },
 } satisfies Record<string, SliderSpec>;
 
 export type SliderKey = keyof typeof SLIDERS;
@@ -208,6 +210,7 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 				slider('linkForce', 'Link force'),
 				slider('linkDistance', 'Link distance'),
 				{ ...slider('clusterForce', 'Cluster force'), shouldHide: notClustered },
+				{ ...slider('clusterRepelForce', 'Cluster repel force'), shouldHide: notClustered },
 			],
 		},
 	];
@@ -285,6 +288,7 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 			linkForce: readNumber(config, 'linkForce'),
 			linkDistance: readNumber(config, 'linkDistance'),
 			clusterForce: readNumber(config, 'clusterForce'),
+			clusterRepelForce: readNumber(config, 'clusterRepelForce'),
 		},
 	};
 }

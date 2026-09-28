@@ -10,7 +10,7 @@ const LABEL_SIZE = 11;
 /** Screen pixels between the top of a cluster's outline and its label. */
 const LABEL_GAP = 3;
 /** Space between a cluster's outermost nodes and its outline, in graph units. */
-const MARGIN = 14;
+export const MARGIN = 14;
 /** How much closer than the margin the outline may come to a node, to round off corners. */
 const SLACK = 10;
 
