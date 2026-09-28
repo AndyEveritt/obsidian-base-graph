@@ -19,7 +19,8 @@
 	touch-action: none;
 }
 
-.base-graph-canvas.is-hovering-node {
+.base-graph-canvas.is-hovering-node,
+.base-graph-canvas.is-hovering-label {
 	cursor: pointer;
 }
 

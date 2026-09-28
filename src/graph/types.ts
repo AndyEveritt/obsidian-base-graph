@@ -40,6 +40,17 @@ export interface GraphLink extends SimulationLinkDatum<GraphNode> {
 	lane: number;
 }
 
+export interface ClusterLabel {
+	/** The label's text in order: plain text, and links shown by their display text. */
+	parts: LabelPart[];
+}
+
+export interface LabelPart {
+	text: string;
+	/** Note to open when this part is selected, if it's a link. */
+	link: { linktext: string; sourcePath: string } | null;
+}
+
 /** Something selected in the legend: a group's notes, or the links from one link property. */
 export interface LegendHighlight {
 	type: 'group' | 'link';
@@ -52,7 +63,7 @@ export interface GraphData {
 	links: GraphLink[];
 	groups: string[];
 	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
-	clusters: string[];
+	clusters: ClusterLabel[];
 	/** Names of the link properties edges are drawn from, or empty when all links are used. */
 	linkLabels: string[];
 	matchCount: number;

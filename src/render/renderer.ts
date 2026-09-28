@@ -15,9 +15,16 @@ import {
 	type ZoomBehavior,
 	type ZoomTransform,
 } from 'd3-zoom';
-import type { GraphData, GraphLink, GraphNode, LegendHighlight } from '../graph/types';
+import type {
+	ClusterLabel,
+	GraphData,
+	GraphLink,
+	GraphNode,
+	LegendHighlight,
+} from '../graph/types';
 import type { DisplaySettings, ForceSettings } from '../view/options';
 import { forceCluster } from './clusterForce';
+import type { LabelHit } from './clusterShapes';
 import { drawGraph, nodeRadius } from './draw';
 import { readTheme, type ThemeColors } from './theme';
 
@@ -26,6 +33,8 @@ export interface RendererCallbacks {
 	/** Called when the hovered node changes, with null when the pointer leaves it. */
 	hover(node: GraphNode | null, evt: MouseEvent | null): void;
 	contextMenu(node: GraphNode, evt: MouseEvent): void;
+	/** Open a note linked from a cluster label. */
+	openLink(linktext: string, sourcePath: string, evt: MouseEvent): void;
 }
 
 interface DragState {
@@ -52,7 +61,10 @@ export class GraphRenderer {
 
 	private nodes: GraphNode[] = [];
 	private links: GraphLink[] = [];
-	private clusterLabels: string[] = [];
+	private clusterLabels: ClusterLabel[] = [];
+	/** Cluster labels that link to a note, where the last frame drew them. */
+	private labelHits: LabelHit[] = [];
+	private hoveredLabel: LabelHit | null = null;
 	private adjacency = new Map<GraphNode, Set<GraphNode>>();
 
 	private width = 0;
@@ -101,11 +113,18 @@ export class GraphRenderer {
 		this.listen('pointermove', (e) => this.onPointerMove(e));
 		this.listen('pointerup', (e) => this.onPointerUp(e, true));
 		this.listen('pointercancel', (e) => this.onPointerUp(e, false));
-		this.listen('pointerleave', () => this.setHovered(null));
+		this.listen('pointerleave', () => {
+			this.setHovered(null);
+			this.setHoveredLabel(null);
+		});
 		this.listen('contextmenu', (e) => this.onContextMenu(e));
 		// d3-zoom suppresses the click after a pan, so this only fires for a plain click.
 		this.listen('click', (e) => {
-			if (this.pinnedNode && !this.nodeAt(e)) this.pin(null);
+			// A node under the pointer was already opened on pointerup.
+			if (this.nodeAt(e)) return;
+			const label = this.labelAt(e);
+			if (label) this.callbacks.openLink(label.link.linktext, label.link.sourcePath, e);
+			else if (this.pinnedNode) this.pin(null);
 		});
 
 		this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -344,7 +363,7 @@ export class GraphRenderer {
 				focusSet.add(link.target as GraphNode);
 			}
 		}
-		drawGraph(this.ctx, {
+		this.labelHits = drawGraph(this.ctx, {
 			nodes: this.nodes,
 			links: this.links,
 			transform: this.transform,
@@ -357,6 +376,7 @@ export class GraphRenderer {
 			focusSet,
 			highlightKind,
 			clusterLabels: this.clusterLabels,
+			hoveredLabel: this.hoveredLabel,
 		});
 	}
 
@@ -402,6 +422,31 @@ export class GraphRenderer {
 		this.scheduleDraw();
 	}
 
+	private setHoveredLabel(hit: LabelHit | null): void {
+		const current = this.hoveredLabel;
+		if (hit?.cluster === current?.cluster && hit?.part === current?.part) return;
+		this.hoveredLabel = hit;
+		this.canvas.toggleClass('is-hovering-label', hit !== null);
+		this.scheduleDraw();
+	}
+
+	/** The link in a cluster label under the pointer, with a little slack around its text. */
+	private labelAt(evt: MouseEvent): LabelHit | null {
+		const rect = this.canvas.getBoundingClientRect();
+		const x = evt.clientX - rect.left;
+		const y = evt.clientY - rect.top;
+		const slack = 2;
+		return (
+			this.labelHits.find(
+				(h) =>
+					x >= h.left - slack &&
+					x <= h.right + slack &&
+					y >= h.top - slack &&
+					y <= h.bottom + slack,
+			) ?? null
+		);
+	}
+
 	private onPointerDown(evt: PointerEvent): void {
 		if (evt.button !== 0) return;
 		const node = this.nodeAt(evt);
@@ -430,7 +475,9 @@ export class GraphRenderer {
 			return;
 		}
 		if (evt.pointerType === 'mouse' && !evt.buttons) {
-			this.setHovered(this.nodeAt(evt), evt);
+			const node = this.nodeAt(evt);
+			this.setHovered(node, evt);
+			this.setHoveredLabel(node ? null : this.labelAt(evt));
 		}
 	}
 

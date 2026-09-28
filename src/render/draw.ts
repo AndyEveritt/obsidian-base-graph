@@ -1,7 +1,7 @@
 import type { ZoomTransform } from 'd3-zoom';
-import type { GraphLink, GraphNode } from '../graph/types';
+import type { ClusterLabel, GraphLink, GraphNode } from '../graph/types';
 import type { DisplaySettings } from '../view/options';
-import { drawClusterLabels, drawClusterShapes } from './clusterShapes';
+import { drawClusterLabels, drawClusterShapes, type LabelHit } from './clusterShapes';
 import type { Point } from './hull';
 import { groupColor, linkColor, type ThemeColors } from './theme';
 
@@ -21,7 +21,9 @@ export interface DrawState {
 	/** Link property whose links are highlighted, with the notes at their ends in `focusSet`. */
 	highlightKind: number | null;
 	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
-	clusterLabels: string[];
+	clusterLabels: ClusterLabel[];
+	/** Link in a cluster label that's hovered; it's underlined to show it can be selected. */
+	hoveredLabel: { cluster: number; part: number } | null;
 }
 
 const DIMMED = 0.15;
@@ -31,7 +33,8 @@ export function nodeRadius(node: GraphNode, display: DisplaySettings): number {
 	return 5 * display.nodeSize * node.weight;
 }
 
-export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
+/** Draws the graph, returning where the cluster labels that can be selected were drawn. */
+export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit[] {
 	const { transform: t, dpr, theme, display, focus, focusSet, highlightKind } = s;
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, s.width, s.height);
@@ -70,8 +73,9 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	}
 
 	drawLabels(ctx, s);
-	drawClusterLabels(ctx, s, clusters);
+	const hits = drawClusterLabels(ctx, s, clusters);
 	ctx.globalAlpha = 1;
+	return hits;
 }
 
 /**

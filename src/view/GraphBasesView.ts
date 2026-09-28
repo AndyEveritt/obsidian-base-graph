@@ -120,6 +120,8 @@ export class GraphBasesView extends BasesView implements HoverParent {
 				settings.forces,
 				{
 					open: (node, evt) => this.openNode(node, evt),
+					openLink: (linktext, sourcePath, evt) =>
+						void this.app.workspace.openLinkText(linktext, sourcePath, Keymap.isModEvent(evt)),
 					hover: (node, evt) => this.hoverNode(node, evt),
 					contextMenu: (node, evt) => this.showNodeMenu(node, evt),
 				},
