@@ -21,6 +21,7 @@ Using the graph:
 
 - Select a node to open it. Hold <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to open it in a new tab.
 - Drag nodes to move them. Scroll to zoom, and drag the background to pan.
+- Hover a node to see the properties chosen in the toolbar's **Properties** menu, rendered as they are in a table. Empty values are left out. Move onto the card to select its links.
 - Hover with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> held for a page preview.
 - Right-click a node for the file menu.
 
@@ -88,7 +89,9 @@ src/
     GraphBasesView.ts     The BasesView: rebuilds on data and link changes, opens files
     options.ts            View options and reading them from the view config
     controls.ts           Depth slider, fit button, status line and legend
+    entries.ts            Creates entries for linked notes outside the base
     groups.ts             Maps notes, including linked ones, to the base's groups
+    propertyCard.ts       Hover card listing the view's selected properties
   render/
     renderer.ts           d3-force simulation, zoom/pan, dragging, hit testing
     draw.ts               Canvas drawing

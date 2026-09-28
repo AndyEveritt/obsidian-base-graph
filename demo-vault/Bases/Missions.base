@@ -16,6 +16,11 @@ views:
     groupBy:
       property: mission_type
       direction: ASC
+    order:
+      - agency
+      - launched
+      - targets
+      - formula.target_count
     depth: 0
     direction: outgoing
     sizeProperty: formula.target_count

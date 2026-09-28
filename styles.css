@@ -108,3 +108,40 @@
 .base-graph-status.mod-warning {
 	color: var(--text-warning);
 }
+
+.base-graph-card {
+	position: absolute;
+	left: var(--base-graph-card-x, 0);
+	top: var(--base-graph-card-y, 0);
+	max-width: 320px;
+	max-height: 60%;
+	overflow: hidden;
+	padding: var(--size-4-2) var(--size-4-3);
+	background-color: var(--background-primary);
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-smaller);
+}
+
+.base-graph-card-title {
+	margin-bottom: var(--size-2-3);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.base-graph-card-rows {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: var(--size-2-1) var(--size-4-3);
+}
+
+.base-graph-card-name {
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.base-graph-card-value {
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}

@@ -7,6 +7,16 @@ views:
     groupBy:
       property: type
       direction: ASC
+    order:
+      - file.name
+      - orbits
+      - role
+      - targets
+      - mission_type
+      - launched
+      - country
+      - category
+      - agency
     showArrows: false
     depth: 0
   - type: table

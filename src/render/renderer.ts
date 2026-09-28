@@ -22,7 +22,8 @@ import { readTheme, type ThemeColors } from './theme';
 
 export interface RendererCallbacks {
 	open(node: GraphNode, evt: MouseEvent): void;
-	hover(node: GraphNode, evt: MouseEvent): void;
+	/** Called when the hovered node changes, with null when the pointer leaves it. */
+	hover(node: GraphNode | null, evt: MouseEvent | null): void;
 	contextMenu(node: GraphNode, evt: MouseEvent): void;
 }
 
@@ -130,7 +131,9 @@ export class GraphRenderer {
 			}
 		}
 
-		this.hovered = this.hovered ? (next.get(this.hovered.id) ?? null) : null;
+		const hovered = this.hovered && next.get(this.hovered.id);
+		if (hovered) this.hovered = hovered;
+		else this.setHovered(null);
 		if (this.drag) {
 			const node = next.get(this.drag.node.id);
 			if (node) this.drag.node = node;
@@ -361,7 +364,7 @@ export class GraphRenderer {
 		if (node === this.hovered) return;
 		this.hovered = node;
 		this.canvas.toggleClass('is-hovering-node', node !== null);
-		if (node && evt) this.callbacks.hover(node, evt);
+		this.callbacks.hover(node, evt ?? null);
 		this.scheduleDraw();
 	}
 

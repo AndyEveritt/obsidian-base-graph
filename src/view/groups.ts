@@ -1,22 +1,18 @@
 import {
 	NullValue,
 	Value,
-	type BasesEntry,
 	type BasesEntryGroup,
 	type BasesPropertyId,
 	type BasesView,
 	type QueryController,
 	type TFile,
 } from 'obsidian';
+import { entryFactory } from './entries';
 
-/** Undocumented internals used to evaluate the group-by property for notes outside the base. */
+/** Undocumented internal config holding the group-by property. */
 interface InternalConfig {
 	groupBy?: { property: BasesPropertyId } | null;
 }
-interface InternalController {
-	ctx?: unknown;
-}
-type EntryConstructor = new (ctx: unknown, file: TFile) => BasesEntry;
 
 /**
  * Maps files to the base's groups. Notes in the base use the group Bases put them in;
@@ -70,9 +66,7 @@ function propertyEvaluator(
 	controller: QueryController,
 ): ((file: TFile) => Value | null) | null {
 	const property = (view.config as unknown as InternalConfig).groupBy?.property;
-	const ctx = (controller as unknown as InternalController).ctx;
-	const sample = view.data.data[0];
-	if (!property || !ctx || !sample) return null;
-	const Entry = sample.constructor as EntryConstructor;
-	return (file) => new Entry(ctx, file).getValue(property);
+	const createEntry = entryFactory(view, controller);
+	if (!property || !createEntry) return null;
+	return (file) => createEntry(file).getValue(property);
 }

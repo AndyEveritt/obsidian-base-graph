@@ -3,9 +3,11 @@ import {
 	debounce,
 	Keymap,
 	Menu,
+	type BasesEntry,
 	type HoverParent,
 	type HoverPopover,
 	type QueryController,
+	type TFile,
 	type Value,
 } from 'obsidian';
 import { HOVER_SOURCE, VIEW_TYPE } from '../constants';
@@ -14,8 +16,10 @@ import type { GraphData, GraphNode } from '../graph/types';
 import type BaseGraphPlugin from '../main';
 import { GraphRenderer } from '../render/renderer';
 import { GraphControls } from './controls';
+import { entryFactory } from './entries';
 import { GroupResolver } from './groups';
 import { readSettings, type GraphViewSettings } from './options';
+import { PropertyCard } from './propertyCard';
 
 export class GraphBasesView extends BasesView implements HoverParent {
 	type = VIEW_TYPE;
@@ -24,6 +28,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 	private rootEl: HTMLElement;
 	private canvasHostEl: HTMLElement;
 	private controls: GraphControls;
+	private card: PropertyCard;
 	private renderer: GraphRenderer | null = null;
 	/** Node and link ids of the last render; the layout is only reheated when these change. */
 	private structure = '';
@@ -44,6 +49,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			fit: () => this.renderer?.fit(),
 			highlightGroup: (group) => this.renderer?.highlightGroup(group),
 		});
+		this.card = new PropertyCard(this.rootEl, this.app.renderContext);
 	}
 
 	onload(): void {
@@ -59,10 +65,17 @@ export class GraphBasesView extends BasesView implements HoverParent {
 				this.rebuild();
 			}),
 		);
+		// The card would be left behind when a node is dragged or the graph zooms.
+		// Capture, because d3-zoom stops these events from propagating.
+		const hideCard = () => this.card.hide();
+		const capture = { capture: true, passive: true };
+		this.registerDomEvent(this.canvasHostEl, 'pointerdown', hideCard, capture);
+		this.registerDomEvent(this.canvasHostEl, 'wheel', hideCard, capture);
 	}
 
 	onunload(): void {
 		this.scheduleRebuild.cancel();
+		this.card.hide();
 		this.renderer?.destroy();
 		this.renderer = null;
 		this.rootEl.remove();
@@ -135,8 +148,11 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		}
 	}
 
-	private hoverNode(node: GraphNode, evt: MouseEvent): void {
-		if (!node.file || !this.renderer) return;
+	private hoverNode(node: GraphNode | null, evt: MouseEvent | null): void {
+		if (!node?.file || !evt || !this.renderer) {
+			this.card.hideSoon();
+			return;
+		}
 		this.app.workspace.trigger('hover-link', {
 			event: evt,
 			source: HOVER_SOURCE,
@@ -145,6 +161,21 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			linktext: node.file.path,
 			sourcePath: '',
 		});
+		// With the modifier held, the page preview shows instead.
+		const entry = Keymap.isModifier(evt, 'Mod') ? null : this.entryFor(node.file);
+		if (entry) this.card.show(node.label, entry, this.config, evt);
+		else this.card.hide();
+	}
+
+	/** The base's entry for a file, or one created for it if depth pulled it in. */
+	private entryFor(file: TFile): BasesEntry | null {
+		const entry = this.data.data.find((e) => e.file === file);
+		if (entry) return entry;
+		try {
+			return entryFactory(this, this.controller)?.(file) ?? null;
+		} catch {
+			return null;
+		}
 	}
 
 	private showNodeMenu(node: GraphNode, evt: MouseEvent): void {
