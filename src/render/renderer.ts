@@ -17,6 +17,7 @@ import {
 } from 'd3-zoom';
 import type { GraphData, GraphLink, GraphNode } from '../graph/types';
 import type { DisplaySettings, ForceSettings } from '../view/options';
+import { forceCluster } from './clusterForce';
 import { drawGraph, nodeRadius } from './draw';
 import { readTheme, type ThemeColors } from './theme';
 
@@ -51,6 +52,7 @@ export class GraphRenderer {
 
 	private nodes: GraphNode[] = [];
 	private links: GraphLink[] = [];
+	private clusterLabels: string[] = [];
 	private adjacency = new Map<GraphNode, Set<GraphNode>>();
 
 	private width = 0;
@@ -142,6 +144,7 @@ export class GraphRenderer {
 
 		this.nodes = data.nodes;
 		this.links = data.links;
+		this.clusterLabels = data.clusters;
 		this.simulation.nodes(this.nodes);
 		this.linkForce().links(this.links);
 
@@ -219,6 +222,7 @@ export class GraphRenderer {
 			.force('charge', forceManyBody<GraphNode>().strength(-f.repelForce * 15))
 			.force('x', forceX<GraphNode>(0).strength(f.centerForce * 0.3))
 			.force('y', forceY<GraphNode>(0).strength(f.centerForce * 0.3))
+			.force('cluster', forceCluster(f.clusterForce * 0.5))
 			.force(
 				'collide',
 				forceCollide<GraphNode>((n) => nodeRadius(n, this.display) + 2),
@@ -323,6 +327,7 @@ export class GraphRenderer {
 			display: this.display,
 			focus,
 			focusSet,
+			clusterLabels: this.clusterLabels,
 		});
 	}
 

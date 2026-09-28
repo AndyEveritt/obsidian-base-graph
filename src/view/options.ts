@@ -11,6 +11,7 @@ export interface ForceSettings {
 	repelForce: number;
 	linkForce: number;
 	linkDistance: number;
+	clusterForce: number;
 }
 
 export interface DisplaySettings {
@@ -18,6 +19,7 @@ export interface DisplaySettings {
 	linkThickness: number;
 	textFade: number;
 	showArrows: boolean;
+	clusterOutlines: boolean;
 }
 
 export interface GraphViewSettings {
@@ -29,6 +31,9 @@ export interface GraphViewSettings {
 	maxNodes: number;
 	labelProperty: BasesPropertyId | null;
 	sizeProperty: BasesPropertyId | null;
+	clusterByGroup: boolean;
+	/** Null when clustering by group. */
+	clusterBy: BasesPropertyId | null;
 	height: number;
 	display: DisplaySettings;
 	forces: ForceSettings;
@@ -52,6 +57,7 @@ const SLIDERS = {
 	repelForce: { min: 0, max: 20, step: 0.5, default: 10 },
 	linkForce: { min: 0, max: 1, step: 0.01, default: 1 },
 	linkDistance: { min: 30, max: 500, step: 10, default: 100 },
+	clusterForce: { min: 0, max: 1, step: 0.01, default: 0.5 },
 } satisfies Record<string, SliderSpec>;
 
 export type SliderKey = keyof typeof SLIDERS;
@@ -70,6 +76,8 @@ function slider(key: SliderKey, displayName: string) {
 
 export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 	const depthIsZero = () => readNumber(config, 'depth') === 0;
+	const byGroup = () => readBool(config, 'clusterByGroup', false);
+	const notClustered = () => !byGroup() && !config.getAsPropertyId('clusterBy');
 	return [
 		slider('depth', 'Depth'),
 		{
@@ -112,6 +120,19 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			placeholder: 'Number of links',
 		},
 		{
+			type: 'toggle',
+			key: 'clusterByGroup',
+			displayName: 'Cluster by group',
+			default: false,
+		},
+		{
+			type: 'property',
+			key: 'clusterBy',
+			displayName: 'Cluster by',
+			placeholder: 'None',
+			shouldHide: byGroup,
+		},
+		{
 			type: 'group',
 			displayName: 'Display',
 			items: [
@@ -123,6 +144,13 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 					key: 'showArrows',
 					displayName: 'Arrows',
 					default: false,
+				},
+				{
+					type: 'toggle',
+					key: 'clusterOutlines',
+					displayName: 'Cluster outlines',
+					default: true,
+					shouldHide: notClustered,
 				},
 				slider('height', 'Height when embedded'),
 				slider('maxNodes', 'Node limit'),
@@ -136,6 +164,7 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 				slider('repelForce', 'Repel force'),
 				slider('linkForce', 'Link force'),
 				slider('linkDistance', 'Link distance'),
+				{ ...slider('clusterForce', 'Cluster force'), shouldHide: notClustered },
 			],
 		},
 	];
@@ -162,6 +191,7 @@ function readBool(
 
 export function readSettings(config: BasesViewConfig): GraphViewSettings {
 	const direction = config.get('direction');
+	const clusterByGroup = readBool(config, 'clusterByGroup', false);
 	return {
 		depth: Math.round(readNumber(config, 'depth')),
 		direction:
@@ -174,18 +204,22 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 		maxNodes: readNumber(config, 'maxNodes'),
 		labelProperty: config.getAsPropertyId('labelProperty'),
 		sizeProperty: config.getAsPropertyId('sizeProperty'),
+		clusterByGroup,
+		clusterBy: clusterByGroup ? null : config.getAsPropertyId('clusterBy'),
 		height: readNumber(config, 'height'),
 		display: {
 			nodeSize: readNumber(config, 'nodeSize'),
 			linkThickness: readNumber(config, 'linkThickness'),
 			textFade: readNumber(config, 'textFade'),
 			showArrows: readBool(config, 'showArrows', false),
+			clusterOutlines: readBool(config, 'clusterOutlines', true),
 		},
 		forces: {
 			centerForce: readNumber(config, 'centerForce'),
 			repelForce: readNumber(config, 'repelForce'),
 			linkForce: readNumber(config, 'linkForce'),
 			linkDistance: readNumber(config, 'linkDistance'),
+			clusterForce: readNumber(config, 'clusterForce'),
 		},
 	};
 }

@@ -3,11 +3,9 @@ import {
 	debounce,
 	Keymap,
 	Menu,
-	type BasesEntry,
 	type HoverParent,
 	type HoverPopover,
 	type QueryController,
-	type TFile,
 	type Value,
 } from 'obsidian';
 import { HOVER_SOURCE, VIEW_TYPE } from '../constants';
@@ -16,7 +14,8 @@ import type { GraphData, GraphNode } from '../graph/types';
 import type BaseGraphPlugin from '../main';
 import { GraphRenderer } from '../render/renderer';
 import { GraphControls } from './controls';
-import { entryFactory } from './entries';
+import { clusterByGroup, clusterByProperty } from './clusters';
+import { EntryLookup } from './entries';
 import { GroupResolver } from './groups';
 import { readSettings, type GraphViewSettings } from './options';
 import { PropertyCard } from './propertyCard';
@@ -30,6 +29,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 	private controls: GraphControls;
 	private card: PropertyCard;
 	private renderer: GraphRenderer | null = null;
+	private entries: EntryLookup | null = null;
 	/** Node and link ids of the last render; the layout is only reheated when these change. */
 	private structure = '';
 
@@ -92,7 +92,9 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		const settings = readSettings(this.config);
 		this.rootEl.setCssProps({ '--base-graph-height': `${settings.height}px` });
 
-		const groups = new GroupResolver(this, this.controller);
+		const entries = new EntryLookup(this, this.controller);
+		this.entries = entries;
+		const groups = new GroupResolver(this, entries);
 		const graph = buildGraph({
 			seeds: this.collectSeeds(settings, groups.isGrouped),
 			groups,
@@ -100,6 +102,12 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			settings,
 			getFile: (path) => this.app.vault.getFileByPath(path),
 		});
+		const { clusterBy } = settings;
+		if (settings.clusterByGroup) {
+			graph.clusters = clusterByGroup(graph.nodes, graph.groups);
+		} else if (clusterBy) {
+			graph.clusters = clusterByProperty(graph.nodes, (file) => entries.valueOf(file, clusterBy));
+		}
 
 		if (this.renderer) {
 			this.renderer.setSettings(settings.display, settings.forces);
@@ -162,20 +170,9 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			sourcePath: '',
 		});
 		// With the modifier held, the page preview shows instead.
-		const entry = Keymap.isModifier(evt, 'Mod') ? null : this.entryFor(node.file);
+		const entry = Keymap.isModifier(evt, 'Mod') ? null : this.entries?.get(node.file);
 		if (entry) this.card.show(node.label, entry, this.config, evt);
 		else this.card.hide();
-	}
-
-	/** The base's entry for a file, or one created for it if depth pulled it in. */
-	private entryFor(file: TFile): BasesEntry | null {
-		const entry = this.data.data.find((e) => e.file === file);
-		if (entry) return entry;
-		try {
-			return entryFactory(this, this.controller)?.(file) ?? null;
-		} catch {
-			return null;
-		}
 	}
 
 	private showNodeMenu(node: GraphNode, evt: MouseEvent): void {
@@ -208,9 +205,10 @@ export class GraphBasesView extends BasesView implements HoverParent {
 	}
 }
 
+/** Changes to clusters are included, since they need the layout to settle again too. */
 function structureKey(graph: GraphData): string {
 	return (
-		graph.nodes.map((n) => n.id).join('\0') +
+		graph.nodes.map((n) => `${n.id}\t${n.cluster}`).join('\0') +
 		'\n' +
 		graph.links.map((l) => l.id).join('\0')
 	);

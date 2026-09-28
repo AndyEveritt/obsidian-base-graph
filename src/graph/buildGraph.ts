@@ -45,6 +45,7 @@ export function buildGraph(input: BuildInput): GraphData {
 			label: !file ? linktext : kind === 'attachment' ? file.name : file.basename,
 			linktext,
 			group: -1,
+			cluster: -1,
 			degree: 0,
 			weight: 1,
 		};
@@ -139,6 +140,7 @@ export function buildGraph(input: BuildInput): GraphData {
 		nodes: nodeList,
 		links: [...links.values()],
 		groups: input.groups.labels,
+		clusters: [],
 		matchCount,
 		truncated,
 	};

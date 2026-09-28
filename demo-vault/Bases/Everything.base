@@ -5,7 +5,7 @@ views:
   - type: base-graph
     name: Graph
     groupBy:
-      property: type
+      property: file.folder
       direction: ASC
     order:
       - file.name
@@ -19,6 +19,9 @@ views:
       - agency
     showArrows: false
     depth: 0
+    clusterBy: note.type
+    clusterByGroup: true
+    clusterOutlines: true
   - type: table
     name: Table
     order:

@@ -1,6 +1,7 @@
 import type { ZoomTransform } from 'd3-zoom';
 import type { GraphLink, GraphNode } from '../graph/types';
 import type { DisplaySettings } from '../view/options';
+import { drawClusterLabels, drawClusterShapes } from './clusterShapes';
 import { groupColor, type ThemeColors } from './theme';
 
 export interface DrawState {
@@ -16,6 +17,8 @@ export interface DrawState {
 	focus: GraphNode | null;
 	/** Nodes that stay bright while everything else is dimmed, or null when nothing is dimmed. */
 	focusSet: Set<GraphNode> | null;
+	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
+	clusterLabels: string[];
 }
 
 const DIMMED = 0.15;
@@ -30,6 +33,9 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, s.width, s.height);
 	ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
+
+	const radiusOf = (node: GraphNode) => nodeRadius(node, display);
+	const clusters = display.clusterOutlines ? drawClusterShapes(ctx, s, radiusOf) : [];
 
 	const lineWidth = Math.max(display.linkThickness, 0.4 / t.k);
 	// With a focused node only its own links are highlighted, not those between its neighbours.
@@ -61,6 +67,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	}
 
 	drawLabels(ctx, s);
+	drawClusterLabels(ctx, s, clusters);
 	ctx.globalAlpha = 1;
 }
 

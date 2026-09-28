@@ -21,6 +21,7 @@ views:
       - launched
       - targets
       - formula.target_count
+    clusterBy: note.agency
     depth: 0
     direction: outgoing
     sizeProperty: formula.target_count
