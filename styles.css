@@ -123,6 +123,9 @@
 	top: var(--base-graph-card-y, 0);
 	max-width: 320px;
 	max-height: 60%;
+	/* The header stays put while the rows scroll. */
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
 	padding: var(--size-4-2) var(--size-4-3);
 	background-color: var(--background-primary);
@@ -159,6 +162,10 @@
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
 	gap: var(--size-2-1) var(--size-4-3);
+	min-height: 0;
+	overflow-y: auto;
+	/* Don't scroll the note or base around the graph when the rows reach their end. */
+	overscroll-behavior: contain;
 }
 
 .base-graph-card-name {
