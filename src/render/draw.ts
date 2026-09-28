@@ -63,25 +63,62 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 				? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
 				: null;
 
+	// Only what's in view is drawn.
+	const view = viewBounds(s);
+	const links = s.links.filter((l) => linkInView(s, view, l));
+
 	ctx.globalAlpha = isHighlighted ? DIMMED : 1;
-	const rest = isHighlighted ? s.links.filter((l) => !isHighlighted(l)) : s.links;
+	const rest = isHighlighted ? links.filter((l) => !isHighlighted(l)) : links;
 	drawLinksByKind(ctx, s, rest, theme.line, theme.arrow);
 	if (isHighlighted) {
 		ctx.globalAlpha = 1;
-		const highlighted = s.links.filter(isHighlighted);
+		const highlighted = links.filter(isHighlighted);
 		drawLinksByKind(ctx, s, highlighted, theme.lineHighlight, theme.lineHighlight);
 	}
 
 	for (const node of s.nodes) {
+		const radius = nodeRadius(node, display);
+		if (!inView(view, node.x!, node.y!, node.x!, node.y!, radius)) continue;
 		const { colors, alpha } = nodeStyle(node, theme);
 		ctx.globalAlpha = focusSet && !focusSet.has(node) ? alpha * DIMMED : alpha;
-		drawNode(ctx, node, nodeRadius(node, display), node === focus ? [theme.fillFocused] : colors);
+		drawNode(ctx, node, radius, node === focus ? [theme.fillFocused] : colors);
 	}
 
 	drawLabels(ctx, s);
 	const hits = drawClusterLabels(ctx, s, clusters);
 	ctx.globalAlpha = 1;
 	return hits;
+}
+
+interface Bounds {
+	left: number;
+	top: number;
+	right: number;
+	bottom: number;
+}
+
+/** The part of the graph on screen, in graph coordinates. */
+function viewBounds(s: DrawState): Bounds {
+	const { x, y, k } = s.transform;
+	return { left: -x / k, top: -y / k, right: (s.width - x) / k, bottom: (s.height - y) / k };
+}
+
+/** Whether the line from a to b, grown by `pad` all round, may be in view. */
+function inView(v: Bounds, ax: number, ay: number, bx: number, by: number, pad: number): boolean {
+	return !(
+		Math.max(ax, bx) < v.left - pad ||
+		Math.min(ax, bx) > v.right + pad ||
+		Math.max(ay, by) < v.top - pad ||
+		Math.min(ay, by) > v.bottom + pad
+	);
+}
+
+/** Links run between node centres, shifted sideways by their lane, with arrowheads inside that line's ends. */
+function linkInView(s: DrawState, v: Bounds, link: GraphLink): boolean {
+	const a = link.source as GraphNode;
+	const b = link.target as GraphNode;
+	const pad = Math.abs(link.lane) * laneGap(s, link) + arrowSize(linkWidth(s, link.count)) / 2;
+	return inView(v, a.x!, a.y!, b.x!, b.y!, pad);
 }
 
 /** Faint dashed circles marking the depth rings, at a fixed screen width. */
@@ -144,13 +181,20 @@ function drawLinks(
 	});
 	for (const [width, indices] of byWidth) {
 		ctx.lineWidth = width;
+		// Chrome strokes a path of many lines wider than a pixel far slower than the same
+		// lines one at a time, so only hairlines are stroked together.
+		const together = width * s.transform.k * s.dpr <= 1;
 		ctx.beginPath();
 		for (const i of indices) {
 			const [a, b] = lines[i]!;
 			ctx.moveTo(a[0], a[1]);
 			ctx.lineTo(b[0], b[1]);
+			if (!together) {
+				ctx.stroke();
+				ctx.beginPath();
+			}
 		}
-		ctx.stroke();
+		if (together) ctx.stroke();
 	}
 
 	if (!s.display.showArrows) return;
