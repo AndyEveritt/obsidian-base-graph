@@ -12,7 +12,7 @@ import { HOVER_SOURCE, VIEW_TYPE } from '../constants';
 import { buildGraph, type SeedEntry } from '../graph/buildGraph';
 import type { Links } from '../graph/linkIndex';
 import { PropertyLinks } from '../graph/propertyLinks';
-import type { GraphData, GraphNode } from '../graph/types';
+import type { GraphData, GraphLink, GraphNode } from '../graph/types';
 import type BaseGraphPlugin from '../main';
 import { GraphRenderer } from '../render/renderer';
 import { GraphControls } from './controls';
@@ -128,7 +128,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			);
 		}
 
-		const structure = structureKey(graph);
+		const structure = structureKey(graph, settings.display.scaleLinksByCount);
 		this.renderer.setData(graph, structure !== this.structure);
 		this.structure = structure;
 		this.controls.update(settings, graph, this.renderer.theme);
@@ -254,11 +254,14 @@ export class GraphBasesView extends BasesView implements HoverParent {
 }
 
 /** Changes to clusters are included, since they need the layout to settle again too. */
-function structureKey(graph: GraphData): string {
+/** Changes whenever the layout should move, so the simulation is reheated. */
+function structureKey(graph: GraphData, withCounts: boolean): string {
+	// Link counts set link lengths when links are scaled by count.
+	const linkKey = withCounts ? (l: GraphLink) => `${l.id}\t${l.count}` : (l: GraphLink) => l.id;
 	return (
 		graph.nodes.map((n) => `${n.id}\t${n.cluster}`).join('\0') +
 		'\n' +
-		graph.links.map((l) => l.id).join('\0')
+		graph.links.map(linkKey).join('\0')
 	);
 }
 

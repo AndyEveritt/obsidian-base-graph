@@ -33,11 +33,15 @@ export interface GraphLink extends SimulationLinkDatum<GraphNode> {
 	kind: number;
 	/** Both notes link to each other. */
 	mutual: boolean;
+	/** How many times the notes link to each other, in both directions when mutual. */
+	count: number;
 	/**
 	 * Sideways offset, in gaps between parallel links, when the two notes have several
 	 * links between them, such as from different link properties. 0 for a single link.
 	 */
 	lane: number;
+	/** The largest count among the links sharing this link's two notes, which sets the gap between lanes. */
+	laneCount: number;
 }
 
 export interface ClusterLabel {

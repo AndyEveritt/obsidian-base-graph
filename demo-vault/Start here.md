@@ -17,3 +17,4 @@ Run `npm run demo` in the plugin repo to build the plugin and copy it into this 
 11. **Task dependencies:** [[Tasks.base]] draws the [[Europa]] lander plan from its `blocked_by` links. **Both directions** adds `blocks` too.
 12. **Rings:** the **Rings** view in [[Missions.base]] puts the two impactor missions, [[DART]] and [[Hera]], in the middle, with notes one and two links away in rings around them. Switch **Layout** back to **Free** to compare.
 13. **Crew:** the **Crew** view in [[Missions.base]] follows `crew` links one step out from the crewed missions. [[Jim Lovell]] connects [[Apollo 8]] and [[Apollo 13]].
+14. **Repeated links:** the **Mentions** view in [[Essays.base]] turns on **Scale links by link count**. [[The Grand Tour]] links [[Voyager 2]] six times but [[Titan]] once, so the line to [[Voyager 2]] is much thicker and pulls it in closer. Links between two notes that link to each other add up both directions. Turn the option off to compare.

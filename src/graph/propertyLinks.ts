@@ -1,11 +1,18 @@
 import { getLinkpath, type MetadataCache, type TFile } from 'obsidian';
 import type { Links } from './linkIndex';
 
+interface PropertyLink {
+	/** Index of the first property linking to the target. */
+	kind: number;
+	/** How many times that property links to the target. */
+	count: number;
+}
+
 interface NoteLinks {
-	/** Target path → index of the property linking to it. */
-	resolved: Map<string, number>;
-	/** Link text → index of the property linking to it. */
-	unresolved: Map<string, number>;
+	/** Target path → the property linking to it. */
+	resolved: Map<string, PropertyLink>;
+	/** Link text → the property linking to it. */
+	unresolved: Map<string, PropertyLink>;
 }
 
 /**
@@ -45,8 +52,16 @@ export class PropertyLinks implements Links {
 	}
 
 	kindOf(source: string, target: string): number {
+		return this.ownLink(source, target)?.kind ?? -1;
+	}
+
+	count(source: string, target: string): number {
+		return this.ownLink(source, target)?.count ?? this.others?.count(source, target) ?? 0;
+	}
+
+	private ownLink(source: string, target: string): PropertyLink | undefined {
 		const links = this.linksOf(source);
-		return links.resolved.get(target) ?? links.unresolved.get(target) ?? -1;
+		return links.resolved.get(target) ?? links.unresolved.get(target);
 	}
 
 	private withOthers(own: string[], others: (links: Links) => string[]): string[] {
@@ -65,7 +80,9 @@ export class PropertyLinks implements Links {
 			const linkpath = getLinkpath(ref.link);
 			const file = this.metadataCache.getFirstLinkpathDest(linkpath, path);
 			const [map, key] = file ? [links.resolved, file.path] : [links.unresolved, linkpath];
-			if (!map.has(key)) map.set(key, kind);
+			const link = map.get(key);
+			if (!link) map.set(key, { kind, count: 1 });
+			else if (link.kind === kind) link.count++;
 		}
 		return links;
 	}

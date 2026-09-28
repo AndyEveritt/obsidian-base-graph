@@ -13,6 +13,11 @@ export interface Links {
 	 * `target` is a path, or the link text of an unresolved link.
 	 */
 	kindOf(source: string, target: string): number;
+	/**
+	 * How many times a note links to `target`, counting only links of the kind
+	 * `kindOf` gives. `target` is a path, or the link text of an unresolved link.
+	 */
+	count(source: string, target: string): number;
 }
 
 /**
@@ -44,6 +49,11 @@ export class LinkIndex implements Links {
 
 	kindOf(): number {
 		return -1;
+	}
+
+	count(source: string, target: string): number {
+		const { resolvedLinks, unresolvedLinks } = this.metadataCache;
+		return resolvedLinks[source]?.[target] ?? unresolvedLinks[source]?.[target] ?? 0;
 	}
 
 	private buildIncoming(): Map<string, string[]> {

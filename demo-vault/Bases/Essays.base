@@ -1,0 +1,20 @@
+filters:
+  and:
+    - type == "essay"
+views:
+  - type: base-graph
+    name: Mentions
+    groupBy:
+      property: file.folder
+      direction: ASC
+    order:
+      - file.name
+    depth: 1
+    direction: outgoing
+    scaleLinksByCount: true
+    showArrows: true
+    height: 600
+  - type: table
+    name: Table
+    order:
+      - file.name

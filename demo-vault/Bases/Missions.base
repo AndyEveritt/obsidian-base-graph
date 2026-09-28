@@ -28,6 +28,7 @@ views:
     showArrows: true
     height: 600
     clusterByGroup: true
+    scaleLinksByCount: true
   - type: base-graph
     name: Rings
     filters:

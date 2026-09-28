@@ -20,6 +20,8 @@ export interface ForceSettings {
 export interface DisplaySettings {
 	nodeSize: number;
 	linkThickness: number;
+	/** Draw links thicker, and pull their notes closer, the more times the two notes link to each other. */
+	scaleLinksByCount: boolean;
 	textFade: number;
 	showArrows: boolean;
 	clusterOutlines: boolean;
@@ -172,6 +174,12 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			items: [
 				slider('nodeSize', 'Node size'),
 				slider('linkThickness', 'Link thickness'),
+				{
+					type: 'toggle',
+					key: 'scaleLinksByCount',
+					displayName: 'Scale links by link count',
+					default: false,
+				},
 				slider('textFade', 'Text fade threshold'),
 				{
 					type: 'toggle',
@@ -265,6 +273,7 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 		display: {
 			nodeSize: readNumber(config, 'nodeSize'),
 			linkThickness: readNumber(config, 'linkThickness'),
+			scaleLinksByCount: readBool(config, 'scaleLinksByCount', false),
 			textFade: readNumber(config, 'textFade'),
 			showArrows: readBool(config, 'showArrows', false),
 			clusterOutlines: readBool(config, 'clusterOutlines', true),

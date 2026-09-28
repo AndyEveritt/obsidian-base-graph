@@ -31,9 +31,16 @@ export interface DrawState {
 const DIMMED = 0.15;
 const RING_ALPHA = 0.35;
 const LABEL_SIZE = 12;
+/** Repeated links grow with the square root of their count, up to this many times as thick. */
+const MAX_LINK_SCALE = 4;
 
 export function nodeRadius(node: GraphNode, display: DisplaySettings): number {
 	return 5 * display.nodeSize * node.weight;
+}
+
+/** How much thicker, stronger and shorter a link is for the number of times its notes link. */
+export function linkScale(count: number, display: DisplaySettings): number {
+	return display.scaleLinksByCount ? Math.min(Math.sqrt(count), MAX_LINK_SCALE) : 1;
 }
 
 /** Draws the graph, returning where the cluster labels that can be selected were drawn. */
@@ -47,7 +54,6 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	const radiusOf = (node: GraphNode) => nodeRadius(node, display);
 	const clusters = display.clusterOutlines ? drawClusterShapes(ctx, s, radiusOf) : [];
 
-	const lineWidth = Math.max(display.linkThickness, 0.4 / t.k);
 	// With a focused node only its own links are highlighted, not those between its neighbours.
 	const isHighlighted: ((l: GraphLink) => boolean) | null = focus
 		? (l) => l.source === focus || l.target === focus
@@ -57,7 +63,6 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 				? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
 				: null;
 
-	ctx.lineWidth = lineWidth;
 	ctx.globalAlpha = isHighlighted ? DIMMED : 1;
 	const rest = isHighlighted ? s.links.filter((l) => !isHighlighted(l)) : s.links;
 	drawLinksByKind(ctx, s, rest, theme.line, theme.arrow);
@@ -129,29 +134,56 @@ function drawLinks(
 	s: DrawState,
 	links: GraphLink[],
 ): void {
-	const size = 3 + 2 * ctx.lineWidth;
-	// Wide enough for arrowheads on parallel links not to overlap.
-	const gap = size * 1.2;
-	const lines = links.map((link) => linkLine(link, gap));
+	const widths = links.map((link) => linkWidth(s, link.count));
+	const gaps = links.map((link) => laneGap(s, link));
+	const lines = links.map((link, i) => linkLine(link, gaps[i]!));
 
-	ctx.beginPath();
-	for (const [a, b] of lines) {
-		ctx.moveTo(a[0], a[1]);
-		ctx.lineTo(b[0], b[1]);
+	// One path per width, so links of the same width are still stroked together.
+	const byWidth = new Map<number, number[]>();
+	widths.forEach((width, i) => {
+		const list = byWidth.get(width);
+		if (list) list.push(i);
+		else byWidth.set(width, [i]);
+	});
+	for (const [width, indices] of byWidth) {
+		ctx.lineWidth = width;
+		ctx.beginPath();
+		for (const i of indices) {
+			const [a, b] = lines[i]!;
+			ctx.moveTo(a[0], a[1]);
+			ctx.lineTo(b[0], b[1]);
+		}
+		ctx.stroke();
 	}
-	ctx.stroke();
 
 	if (!s.display.showArrows) return;
 	ctx.beginPath();
 	links.forEach((link, i) => {
 		const [a, b] = lines[i]!;
-		const offset = link.lane * gap;
+		const offset = link.lane * gaps[i]!;
+		const size = arrowSize(widths[i]!);
 		const source = link.source as GraphNode;
 		const target = link.target as GraphNode;
 		arrowHead(ctx, a, b, insetFor(nodeRadius(target, s.display), offset), size);
 		if (link.mutual) arrowHead(ctx, b, a, insetFor(nodeRadius(source, s.display), offset), size);
 	});
 	ctx.fill();
+}
+
+/** A link's width from the thickness setting, and from its count when repeated links are thicker. */
+function linkWidth(s: DrawState, count: number): number {
+	// At least 0.4 screen pixels, however far out the graph is zoomed.
+	const base = Math.max(s.display.linkThickness, 0.4 / s.transform.k);
+	return base * linkScale(count, s.display);
+}
+
+function arrowSize(width: number): number {
+	return 3 + 2 * width;
+}
+
+/** Gap between parallel links, wide enough for the arrowheads of the thickest of them not to overlap. */
+function laneGap(s: DrawState, link: GraphLink): number {
+	return arrowSize(linkWidth(s, link.laneCount)) * 1.2;
 }
 
 /** A link's end points, shifted sideways by its lane so parallel links don't overlap. */

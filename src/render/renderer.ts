@@ -26,7 +26,7 @@ import type {
 import type { DisplaySettings, ForceSettings } from '../view/options';
 import { forceCluster } from './clusterForce';
 import type { LabelHit } from './clusterShapes';
-import { drawGraph, nodeRadius } from './draw';
+import { drawGraph, linkScale, nodeRadius } from './draw';
 import { ringRadii } from './rings';
 import { readTheme, type ThemeColors } from './theme';
 
@@ -198,7 +198,8 @@ export class GraphRenderer {
 	setSettings(display: DisplaySettings, forces: ForceSettings): void {
 		const forcesChanged =
 			JSON.stringify(forces) !== JSON.stringify(this.forces) ||
-			display.nodeSize !== this.display.nodeSize;
+			display.nodeSize !== this.display.nodeSize ||
+			display.scaleLinksByCount !== this.display.scaleLinksByCount;
 		this.display = display;
 		this.forces = forces;
 		if (forcesChanged) {
@@ -271,8 +272,17 @@ export class GraphRenderer {
 				'link',
 				forceLink<GraphNode, GraphLink>(this.links)
 					.id((n) => n.id)
-					.distance(f.linkDistance)
-					.strength((l) => f.linkForce / Math.min(degree(l.source), degree(l.target))),
+					// Repeated links are shorter as well as stronger, since strength alone only
+					// holds notes more firmly at the same distance.
+					.distance((l) => f.linkDistance / linkScale(l.count, this.display))
+					// Capped at 1, as stronger links overshoot and oscillate.
+					.strength((l) =>
+						Math.min(
+							1,
+							(f.linkForce * linkScale(l.count, this.display)) /
+								Math.min(degree(l.source), degree(l.target)),
+						),
+					),
 			)
 			.force('charge', forceManyBody<GraphNode>().strength(-f.repelForce * 15))
 			.force('x', forceX<GraphNode>(0).strength(center))
