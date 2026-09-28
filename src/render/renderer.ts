@@ -59,6 +59,8 @@ export class GraphRenderer {
 	private height = 0;
 	private dpr = 1;
 	private hovered: GraphNode | null = null;
+	/** Node that stays highlighted when nothing else is hovered or highlighted. */
+	private pinnedNode: GraphNode | null = null;
 	/** Group whose legend item is hovered; its nodes stay bright. */
 	private highlightedGroup: number | null = null;
 	private drag: DragState | null = null;
@@ -101,6 +103,10 @@ export class GraphRenderer {
 		this.listen('pointercancel', (e) => this.onPointerUp(e, false));
 		this.listen('pointerleave', () => this.setHovered(null));
 		this.listen('contextmenu', (e) => this.onContextMenu(e));
+		// d3-zoom suppresses the click after a pan, so this only fires for a plain click.
+		this.listen('click', (e) => {
+			if (this.pinnedNode && !this.nodeAt(e)) this.pin(null);
+		});
 
 		this.resizeObserver = new ResizeObserver(() => this.resize());
 		this.resizeObserver.observe(parentEl);
@@ -136,6 +142,7 @@ export class GraphRenderer {
 		const hovered = this.hovered && next.get(this.hovered.id);
 		if (hovered) this.hovered = hovered;
 		else this.setHovered(null);
+		this.pinnedNode = this.pinnedNode ? (next.get(this.pinnedNode.id) ?? null) : null;
 		if (this.drag) {
 			const node = next.get(this.drag.node.id);
 			if (node) this.drag.node = node;
@@ -171,6 +178,16 @@ export class GraphRenderer {
 			this.applyForces();
 			this.simulation.alpha(0.3).restart();
 		}
+		this.scheduleDraw();
+	}
+
+	get pinnedId(): string | null {
+		return this.pinnedNode?.id ?? null;
+	}
+
+	/** Keep a node and its neighbours highlighted, or clear the pin with null. */
+	pin(id: string | null): void {
+		this.pinnedNode = id === null ? null : (this.nodes.find((n) => n.id === id) ?? null);
 		this.scheduleDraw();
 	}
 
@@ -307,7 +324,9 @@ export class GraphRenderer {
 	}
 
 	private draw(): void {
-		const focus = this.drag?.node ?? this.hovered;
+		// A highlighted group takes over from the pin, so the legend still works while pinned.
+		const pinned = this.highlightedGroup === null ? this.pinnedNode : null;
+		const focus = this.drag?.node ?? this.hovered ?? pinned;
 		let focusSet: Set<GraphNode> | null = null;
 		if (focus) {
 			focusSet = new Set(this.adjacency.get(focus));

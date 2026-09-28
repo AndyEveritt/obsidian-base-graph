@@ -23,6 +23,7 @@ Using the graph:
 - Select a node to open it. Hold <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> to open it in a new tab.
 - Drag nodes to move them. Scroll to zoom, and drag the background to pan.
 - Hover a node to see the properties chosen in the toolbar's **Properties** menu, rendered as they are in a table. Empty values are left out. Move onto the card to select its links.
+- Select the pin on the card, or **Pin highlight** in the node's menu, to keep that note and its links highlighted. Select an empty part of the graph to unpin it.
 - Hover with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> held for a page preview.
 - Right-click a node for the file menu.
 
@@ -97,7 +98,7 @@ src/
     controls.ts           Depth slider, fit button, status line and legend
     entries.ts            Looks up entries, creating them for linked notes outside the base
     groups.ts             Maps notes, including linked ones, to the base's groups
-    propertyCard.ts       Hover card listing the view's selected properties
+    propertyCard.ts       Hover card listing the view's selected properties, with a pin button
   render/
     renderer.ts           d3-force simulation, zoom/pan, dragging, hit testing
     clusterForce.ts       Force pulling each cluster towards its centre

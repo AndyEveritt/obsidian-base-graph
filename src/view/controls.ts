@@ -99,6 +99,13 @@ export class GraphControls {
 		this.applyHighlight();
 	}
 
+	/** Clear the group locked from the legend, if any. */
+	unlockGroup(): void {
+		this.lockedGroup = null;
+		this.lockedLabel = null;
+		this.applyHighlight();
+	}
+
 	private setHoveredGroup(group: number | null): void {
 		this.hoveredGroup = group;
 		this.applyHighlight();

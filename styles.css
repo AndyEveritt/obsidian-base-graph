@@ -124,10 +124,27 @@
 	font-size: var(--font-ui-smaller);
 }
 
-.base-graph-card-title {
+.base-graph-card-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.base-graph-card-header:not(:last-child) {
 	margin-bottom: var(--size-2-3);
+}
+
+.base-graph-card-title {
+	flex: 1;
+	min-width: 0;
 	font-weight: var(--font-semibold);
 	color: var(--text-normal);
+}
+
+.base-graph-card-pin {
+	flex-shrink: 0;
+	padding: var(--size-2-1);
+	--icon-size: var(--icon-xs);
 }
 
 .base-graph-card-rows {

@@ -170,9 +170,30 @@ export class GraphBasesView extends BasesView implements HoverParent {
 			sourcePath: '',
 		});
 		// With the modifier held, the page preview shows instead.
-		const entry = Keymap.isModifier(evt, 'Mod') ? null : this.entries?.get(node.file);
-		if (entry) this.card.show(node.label, entry, this.config, evt);
-		else this.card.hide();
+		if (Keymap.isModifier(evt, 'Mod')) {
+			this.card.hide();
+			return;
+		}
+		this.card.show(
+			{
+				title: node.label,
+				entry: this.entries?.get(node.file) ?? null,
+				config: this.config,
+				pinned: this.renderer.pinnedId === node.id,
+				togglePin: () => this.togglePin(node),
+			},
+			evt,
+		);
+	}
+
+	/** Pin or unpin a node's highlight, returning whether it's now pinned. */
+	private togglePin(node: GraphNode): boolean {
+		if (!this.renderer) return false;
+		const pin = this.renderer.pinnedId !== node.id;
+		this.renderer.pin(pin ? node.id : null);
+		// A locked legend group would hide the pin.
+		if (pin) this.controls.unlockGroup();
+		return pin;
 	}
 
 	private showNodeMenu(node: GraphNode, evt: MouseEvent): void {
@@ -192,6 +213,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 					.setIcon('separator-vertical')
 					.onClick(() => void workspace.getLeaf('split').openFile(file)),
 			);
+			this.addPinItem(menu, node);
 			workspace.trigger('file-menu', menu, file, VIEW_TYPE);
 		} else {
 			menu.addItem((item) =>
@@ -200,8 +222,19 @@ export class GraphBasesView extends BasesView implements HoverParent {
 					.setIcon('file-plus')
 					.onClick(() => void workspace.openLinkText(node.linktext, node.sourcePath)),
 			);
+			this.addPinItem(menu, node);
 		}
 		menu.showAtMouseEvent(evt);
+	}
+
+	private addPinItem(menu: Menu, node: GraphNode): void {
+		const pinned = this.renderer?.pinnedId === node.id;
+		menu.addItem((item) =>
+			item
+				.setTitle(pinned ? 'Unpin highlight' : 'Pin highlight')
+				.setIcon(pinned ? 'pin-off' : 'pin')
+				.onClick(() => this.togglePin(node)),
+		);
 	}
 }
 
