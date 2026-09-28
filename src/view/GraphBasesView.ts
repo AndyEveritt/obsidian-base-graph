@@ -100,7 +100,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		this.entries = entries;
 		const groups = new GroupResolver(this, entries);
 		const graph = buildGraph({
-			seeds: this.collectSeeds(settings, groups.isGrouped),
+			seeds: this.collectSeeds(settings, groups),
 			groups,
 			index: this.links(settings),
 			settings,
@@ -147,14 +147,14 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		);
 	}
 
-	private collectSeeds(settings: GraphViewSettings, isGrouped: boolean): SeedEntry[] {
+	private collectSeeds(settings: GraphViewSettings, groups: GroupResolver): SeedEntry[] {
 		const seeds: SeedEntry[] = [];
 		this.data.groupedData.forEach((group, i) => {
 			for (const entry of group.entries) {
 				const { labelProperty, sizeProperty } = settings;
 				seeds.push({
 					file: entry.file,
-					group: isGrouped ? i : -1,
+					groups: groups.ofBaseGroup(i),
 					label: labelProperty ? valueText(safeValue(entry, labelProperty)) : null,
 					size: sizeProperty ? valueNumber(safeValue(entry, sizeProperty)) : null,
 				});
@@ -261,7 +261,7 @@ function structureKey(graph: GraphData, withCounts: boolean): string {
 	// Link counts set link lengths when links are scaled by count.
 	const linkKey = withCounts ? (l: GraphLink) => `${l.id}\t${l.count}` : (l: GraphLink) => l.id;
 	return (
-		graph.nodes.map((n) => `${n.id}\t${n.cluster}`).join('\0') +
+		graph.nodes.map((n) => `${n.id}\t${n.clusters.join(',')}`).join('\0') +
 		'\n' +
 		graph.links.map(linkKey).join('\0')
 	);

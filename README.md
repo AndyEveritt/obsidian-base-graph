@@ -6,7 +6,7 @@ Adds a **Graph** view to [Obsidian Bases](https://help.obsidian.md/bases). The n
 
 - **Filters:** use the normal Bases toolbar to add, edit and remove filters. The graph updates as you change them.
 - **Depth:** like the local graph, also show notes up to _n_ links away from the base's results. Choose whether to follow links, backlinks or both.
-- **Groups:** if the base is grouped, each group gets its own colour and appears in the legend.
+- **Groups:** if the base is grouped, each group gets its own colour and appears in the legend. When grouped by a list property, each item in the list is its own group, and a note with several items is split equally between their colours.
 - **Link properties:** draw only the links in chosen properties, such as `parent` or `blocks`, to graph relationships like an org chart or task dependencies. Each property's links get their own colour.
 - **Clusters:** optionally pull notes that share a property value together, separately from how they're coloured.
 - **Embeds:** works anywhere a base does, including `![[Projects.base#Graph]]` and inline `base` code blocks.
@@ -45,7 +45,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Show orphans | Show results that aren't linked to anything in the graph. |
 | Label property | Property to use as the node label. Defaults to the file name. |
 | Size property | Numeric property that sets node size. Defaults to the number of links. |
-| Cluster by group | Cluster notes by the base's groups instead of by a property. |
+| Cluster by group | Cluster notes by the base's groups instead of by a property. Notes in several groups, from a list, are in each of their groups' clusters. |
 | Cluster by | Property whose values the notes are clustered by. Notes without a value aren't clustered. Each cluster gets a faint outline, background and label, in its group's colour if all its notes share one. |
 | Display | Node size, link thickness, scale links by link count, text fade threshold, arrows, cluster outlines, height when embedded, and the node limit. |
 | Forces | Center, repel and link forces, and link distance. Link distance also sets the gap between rings. Cluster force sets how tightly clusters pull together. |
@@ -103,7 +103,7 @@ src/
     clusters.ts           Assigns clusters from the base's groups or a property
     controls.ts           Depth slider, fit button, status line and legend
     entries.ts            Looks up entries, creating them for linked notes outside the base
-    groups.ts             Maps notes, including linked ones, to the base's groups
+    groups.ts             Maps notes, including linked ones, to the base's groups, splitting lists
     propertyCard.ts       Hover card listing the view's selected properties, with a pin button
   render/
     renderer.ts           d3-force simulation, zoom/pan, dragging, hit testing

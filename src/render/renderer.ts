@@ -387,7 +387,7 @@ export class GraphRenderer {
 			focusSet = new Set(this.adjacency.get(focus));
 			focusSet.add(focus);
 		} else if (legend?.type === 'group') {
-			focusSet = new Set(this.nodes.filter((n) => n.group === legend.index));
+			focusSet = new Set(this.nodes.filter((n) => n.groups.includes(legend.index)));
 		} else if (legend?.type === 'link') {
 			highlightKind = legend.index;
 			focusSet = new Set();

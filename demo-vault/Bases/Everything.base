@@ -5,7 +5,7 @@ views:
   - type: base-graph
     name: Graph
     groupBy:
-      property: file.folder
+      property: agency
       direction: ASC
     order:
       - file.name

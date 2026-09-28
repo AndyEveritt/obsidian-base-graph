@@ -16,7 +16,7 @@ export function clusterByProperty(
 	for (const node of nodes) {
 		const key = node.file ? valueOf(node.file)?.toString().trim() : '';
 		if (!key) {
-			node.cluster = -1;
+			node.clusters = [];
 			continue;
 		}
 		let cluster = clusters.get(key);
@@ -24,17 +24,20 @@ export function clusterByProperty(
 			clusters.set(key, (cluster = clusters.size));
 			labels.push({ parts: linkParts(key, node.id) });
 		}
-		node.cluster = cluster;
+		node.clusters = [cluster];
 	}
 	return labels;
 }
 
-/** Clusters nodes by the base's groups. Returns the clusters' labels. */
+/**
+ * Clusters nodes by the base's groups, one cluster per group. Notes in several groups,
+ * from a list, are in each of their groups' clusters. Returns the clusters' labels.
+ */
 export function clusterByGroup(nodes: GraphNode[], groups: string[]): ClusterLabel[] {
 	const sourcePaths: string[] = [];
 	for (const node of nodes) {
-		node.cluster = node.group;
-		if (node.group >= 0) sourcePaths[node.group] ??= node.id;
+		node.clusters = node.groups;
+		for (const group of node.groups) sourcePaths[group] ??= node.id;
 	}
 	return groups.map((group, i) => ({ parts: linkParts(group, sourcePaths[i] ?? '') }));
 }

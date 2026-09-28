@@ -34,10 +34,11 @@ export function drawClusterShapes(
 ): ClusterShape[] {
 	const clusters = new Map<number, GraphNode[]>();
 	for (const node of s.nodes) {
-		if (node.cluster < 0) continue;
-		const members = clusters.get(node.cluster);
-		if (members) members.push(node);
-		else clusters.set(node.cluster, [node]);
+		for (const cluster of node.clusters) {
+			const members = clusters.get(cluster);
+			if (members) members.push(node);
+			else clusters.set(cluster, [node]);
+		}
 	}
 
 	const shapes: ClusterShape[] = [];
@@ -118,13 +119,13 @@ export function drawClusterLabels(
 	return hits;
 }
 
-/** The group's colour when the cluster's grouped notes are all in one group. */
+/** The group's colour when it's the only group all the cluster's grouped notes are in. */
 function clusterColor(members: GraphNode[], theme: ThemeColors): string | null {
-	let group = -1;
-	for (const node of members) {
-		if (node.group < 0 || node.group === group) continue;
-		if (group >= 0) return null;
-		group = node.group;
+	let shared: number[] | null = null;
+	for (const { groups } of members) {
+		if (groups.length === 0) continue;
+		shared = shared ? shared.filter((g) => groups.includes(g)) : groups;
+		if (shared.length === 0) return null;
 	}
-	return group >= 0 ? groupColor(theme, group) : null;
+	return shared?.length === 1 ? groupColor(theme, shared[0]!) : null;
 }

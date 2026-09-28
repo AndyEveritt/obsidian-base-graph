@@ -16,10 +16,10 @@ export interface GraphNode extends SimulationNodeDatum {
 	sourcePath: string;
 	/** 0 for notes matched by the base, n for notes n links away. */
 	level: number;
-	/** Index into `GraphData.groups`, or -1 when the base isn't grouped. */
-	group: number;
-	/** Nodes sharing a cluster are pulled together, or -1 when not clustered. */
-	cluster: number;
+	/** Indices into `GraphData.groups`, in order: several when grouped by a list, empty when the base isn't grouped. */
+	groups: number[];
+	/** Nodes sharing a cluster are pulled together. Several when in several groups, empty when not clustered. */
+	clusters: number[];
 	degree: number;
 	/** Relative node size: from the size property if set, otherwise from the number of links. */
 	weight: number;
@@ -66,7 +66,7 @@ export interface GraphData {
 	nodes: GraphNode[];
 	links: GraphLink[];
 	groups: string[];
-	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
+	/** Labels of the clusters, indexed by `GraphNode.clusters`. */
 	clusters: ClusterLabel[];
 	/** Names of the link properties edges are drawn from, or empty when all links are used. */
 	linkLabels: string[];

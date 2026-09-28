@@ -6,7 +6,7 @@ import type { GraphData, GraphLink, GraphNode, NodeKind } from './types';
 
 export interface SeedEntry {
 	file: TFile;
-	group: number;
+	groups: number[];
 	/** Label from the label property, if one is configured and set. */
 	label: string | null;
 	/** Numeric value of the size property, if one is configured and set. */
@@ -44,8 +44,8 @@ export function buildGraph(input: BuildInput): GraphData {
 			sourcePath,
 			label: !file ? linktext : kind === 'attachment' ? file.name : file.basename,
 			linktext,
-			group: -1,
-			cluster: -1,
+			groups: [],
+			clusters: [],
 			degree: 0,
 			weight: 1,
 		};
@@ -56,7 +56,7 @@ export function buildGraph(input: BuildInput): GraphData {
 	for (const seed of seeds) {
 		if (nodes.has(seed.file.path)) continue;
 		const node = addNode(seed.file.path, 'match', seed.file, 0, '');
-		node.group = seed.group;
+		node.groups = seed.groups;
 		if (seed.label) node.label = seed.label;
 	}
 	const matchCount = nodes.size;
@@ -139,7 +139,7 @@ export function buildGraph(input: BuildInput): GraphData {
 
 	// Resolved after filtering so hidden notes don't add groups to the legend.
 	for (const node of nodeList) {
-		if (node.kind === 'neighbour') node.group = input.groups.groupOf(node.file!);
+		if (node.kind === 'neighbour') node.groups = input.groups.groupsOf(node.file!);
 	}
 
 	assignWeights(nodeList, seeds, settings);

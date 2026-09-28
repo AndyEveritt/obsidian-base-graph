@@ -20,7 +20,7 @@ export interface DrawState {
 	focusSet: Set<GraphNode> | null;
 	/** Link property whose links are highlighted, with the notes at their ends in `focusSet`. */
 	highlightKind: number | null;
-	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
+	/** Labels of the clusters, indexed by `GraphNode.clusters`. */
 	clusterLabels: ClusterLabel[];
 	/** Radii of the depth rings to draw as guides, or empty when not using the ring layout. */
 	rings: number[];
@@ -73,12 +73,9 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	}
 
 	for (const node of s.nodes) {
-		const { color, alpha } = nodeStyle(node, theme);
+		const { colors, alpha } = nodeStyle(node, theme);
 		ctx.globalAlpha = focusSet && !focusSet.has(node) ? alpha * DIMMED : alpha;
-		ctx.fillStyle = node === focus ? theme.fillFocused : color;
-		ctx.beginPath();
-		ctx.arc(node.x!, node.y!, nodeRadius(node, display), 0, 2 * Math.PI);
-		ctx.fill();
+		drawNode(ctx, node, nodeRadius(node, display), node === focus ? [theme.fillFocused] : colors);
 	}
 
 	drawLabels(ctx, s);
@@ -234,26 +231,52 @@ function arrowHead(
 	ctx.closePath();
 }
 
+/** A node's circle, split into equal slices when it has several colours, starting from the top. */
+function drawNode(
+	ctx: CanvasRenderingContext2D,
+	node: GraphNode,
+	radius: number,
+	colors: string[],
+): void {
+	const x = node.x!;
+	const y = node.y!;
+	if (colors.length === 1) {
+		ctx.fillStyle = colors[0]!;
+		ctx.beginPath();
+		ctx.arc(x, y, radius, 0, 2 * Math.PI);
+		ctx.fill();
+		return;
+	}
+	const slice = (2 * Math.PI) / colors.length;
+	colors.forEach((color, i) => {
+		const start = -Math.PI / 2 + i * slice;
+		ctx.fillStyle = color;
+		ctx.beginPath();
+		ctx.moveTo(x, y);
+		ctx.arc(x, y, radius, start, start + slice);
+		ctx.closePath();
+		ctx.fill();
+	});
+}
+
 function nodeStyle(
 	node: GraphNode,
 	theme: ThemeColors,
-): { color: string; alpha: number } {
+): { colors: string[]; alpha: number } {
 	switch (node.kind) {
 		case 'match':
-			return {
-				color: node.group >= 0 ? groupColor(theme, node.group) : theme.fill,
-				alpha: 1,
-			};
+			return { colors: groupColors(node, theme), alpha: 1 };
 		case 'neighbour':
-			return {
-				color: node.group >= 0 ? groupColor(theme, node.group) : theme.fill,
-				alpha: 0.45,
-			};
+			return { colors: groupColors(node, theme), alpha: 0.45 };
 		case 'attachment':
-			return { color: theme.fillAttachment, alpha: 0.6 };
+			return { colors: [theme.fillAttachment], alpha: 0.6 };
 		case 'unresolved':
-			return { color: theme.fillUnresolved, alpha: 0.6 };
+			return { colors: [theme.fillUnresolved], alpha: 0.6 };
 	}
+}
+
+function groupColors(node: GraphNode, theme: ThemeColors): string[] {
+	return node.groups.length > 0 ? node.groups.map((g) => groupColor(theme, g)) : [theme.fill];
 }
 
 /** Labels are drawn at a fixed screen size and fade out as you zoom out. */
