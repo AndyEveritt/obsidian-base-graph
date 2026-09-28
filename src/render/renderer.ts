@@ -453,8 +453,9 @@ export class GraphRenderer {
 		if (node === this.hovered) return;
 		this.hovered = node;
 		this.canvas.toggleClass('is-hovering-node', node !== null);
-		this.callbacks.hover(node, evt ?? null);
+		// Before the callback, so the highlight still shows if it throws.
 		this.scheduleDraw();
+		this.callbacks.hover(node, evt ?? null);
 	}
 
 	private setHoveredLabel(hit: LabelHit | null): void {

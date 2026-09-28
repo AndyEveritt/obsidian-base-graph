@@ -5,6 +5,7 @@ import {
 	type BasesEntry,
 	type BasesViewConfig,
 	type RenderContext,
+	type Value,
 } from 'obsidian';
 
 /** Gap between the cursor and the card, in pixels. */
@@ -81,13 +82,24 @@ export class PropertyCard {
 	private renderProperties(entry: BasesEntry, config: BasesViewConfig, title: string): void {
 		const rowsEl = this.el.createDiv({ cls: 'base-graph-card-rows' });
 		for (const property of config.getOrder()) {
-			const value = entry.getValue(property);
+			// Evaluating can throw on malformed frontmatter, such as a list with an empty item.
+			let value: Value | null;
+			try {
+				value = entry.getValue(property);
+			} catch {
+				continue;
+			}
 			if (!value || value instanceof NullValue) continue;
 			const text = value.toString().trim();
 			// Skip empty values, and the property the title already shows.
 			if (!text || text === title) continue;
 			rowsEl.createDiv({ cls: 'base-graph-card-name', text: config.getDisplayName(property) });
-			value.renderTo(rowsEl.createDiv({ cls: 'base-graph-card-value' }), this.renderContext);
+			const valueEl = rowsEl.createDiv({ cls: 'base-graph-card-value' });
+			try {
+				value.renderTo(valueEl, this.renderContext);
+			} catch {
+				valueEl.setText(text);
+			}
 		}
 		if (!rowsEl.hasChildNodes()) rowsEl.remove();
 	}

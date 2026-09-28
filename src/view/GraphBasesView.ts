@@ -3,6 +3,8 @@ import {
 	debounce,
 	Keymap,
 	Menu,
+	type BasesEntry,
+	type BasesPropertyId,
 	type HoverParent,
 	type HoverPopover,
 	type QueryController,
@@ -153,8 +155,8 @@ export class GraphBasesView extends BasesView implements HoverParent {
 				seeds.push({
 					file: entry.file,
 					group: isGrouped ? i : -1,
-					label: labelProperty ? valueText(entry.getValue(labelProperty)) : null,
-					size: sizeProperty ? valueNumber(entry.getValue(sizeProperty)) : null,
+					label: labelProperty ? valueText(safeValue(entry, labelProperty)) : null,
+					size: sizeProperty ? valueNumber(safeValue(entry, sizeProperty)) : null,
 				});
 			}
 		});
@@ -263,6 +265,15 @@ function structureKey(graph: GraphData, withCounts: boolean): string {
 		'\n' +
 		graph.links.map(linkKey).join('\0')
 	);
+}
+
+/** A property's value, or null when evaluating it throws, as it can on malformed frontmatter. */
+function safeValue(entry: BasesEntry, property: BasesPropertyId): Value | null {
+	try {
+		return entry.getValue(property);
+	} catch {
+		return null;
+	}
 }
 
 function valueText(value: Value | null): string | null {
