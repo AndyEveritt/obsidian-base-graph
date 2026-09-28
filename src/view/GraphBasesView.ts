@@ -10,6 +10,8 @@ import {
 } from 'obsidian';
 import { HOVER_SOURCE, VIEW_TYPE } from '../constants';
 import { buildGraph, type SeedEntry } from '../graph/buildGraph';
+import type { Links } from '../graph/linkIndex';
+import { PropertyLinks } from '../graph/propertyLinks';
 import type { GraphData, GraphNode } from '../graph/types';
 import type BaseGraphPlugin from '../main';
 import { GraphRenderer } from '../render/renderer';
@@ -47,7 +49,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 				this.rebuild();
 			},
 			fit: () => this.renderer?.fit(),
-			highlightGroup: (group) => this.renderer?.highlightGroup(group),
+			highlight: (highlight) => this.renderer?.highlight(highlight),
 		});
 		this.card = new PropertyCard(this.rootEl, this.app.renderContext);
 	}
@@ -98,7 +100,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		const graph = buildGraph({
 			seeds: this.collectSeeds(settings, groups.isGrouped),
 			groups,
-			index: this.plugin.linkIndex,
+			index: this.links(settings),
 			settings,
 			getFile: (path) => this.app.vault.getFileByPath(path),
 		});
@@ -128,6 +130,17 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		this.renderer.setData(graph, structure !== this.structure);
 		this.structure = structure;
 		this.controls.update(settings, graph, this.renderer.theme);
+	}
+
+	private links(settings: GraphViewSettings): Links {
+		const { linkIndex } = this.plugin;
+		if (settings.linkProperties.length === 0) return linkIndex;
+		return new PropertyLinks(
+			this.app.metadataCache,
+			settings.linkProperties,
+			() => this.app.vault.getMarkdownFiles(),
+			settings.otherLinks ? linkIndex : null,
+		);
 	}
 
 	private collectSeeds(settings: GraphViewSettings, isGrouped: boolean): SeedEntry[] {
@@ -191,8 +204,8 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		if (!this.renderer) return false;
 		const pin = this.renderer.pinnedId !== node.id;
 		this.renderer.pin(pin ? node.id : null);
-		// A locked legend group would hide the pin.
-		if (pin) this.controls.unlockGroup();
+		// A locked legend item would hide the pin.
+		if (pin) this.controls.unlock();
 		return pin;
 	}
 

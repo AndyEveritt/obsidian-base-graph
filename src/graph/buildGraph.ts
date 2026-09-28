@@ -1,7 +1,7 @@
 import type { TFile } from 'obsidian';
 import type { GroupResolver } from '../view/groups';
 import type { GraphViewSettings } from '../view/options';
-import type { LinkIndex } from './linkIndex';
+import type { Links } from './linkIndex';
 import type { GraphData, GraphLink, GraphNode, NodeKind } from './types';
 
 export interface SeedEntry {
@@ -16,7 +16,7 @@ export interface SeedEntry {
 export interface BuildInput {
 	seeds: SeedEntry[];
 	groups: GroupResolver;
-	index: LinkIndex;
+	index: Links;
 	settings: GraphViewSettings;
 	getFile: (path: string) => TFile | null;
 }
@@ -91,21 +91,22 @@ export function buildGraph(input: BuildInput): GraphData {
 	}
 
 	const links = new Map<string, GraphLink>();
-	const addLink = (source: string, target: string) => {
+	const addLink = (source: string, target: string, kind: number) => {
 		if (source === target) return;
+		// Links from different properties, such as parent and child, stay separate.
 		const reverse = links.get(`${target}\n${source}`);
-		if (reverse) {
+		if (reverse?.kind === kind) {
 			reverse.mutual = true;
 			return;
 		}
 		const id = `${source}\n${target}`;
-		if (!links.has(id)) links.set(id, { id, source, target, mutual: false });
+		if (!links.has(id)) links.set(id, { id, source, target, kind, mutual: false, lane: 0 });
 	};
 
 	for (const node of [...nodes.values()]) {
 		if (!node.file) continue;
 		for (const target of index.outgoing(node.id)) {
-			if (nodes.has(target)) addLink(node.id, target);
+			if (nodes.has(target)) addLink(node.id, target, index.kindOf(node.id, target));
 		}
 		if (!settings.showUnresolved) continue;
 		for (const linktext of index.unresolved(node.id)) {
@@ -117,7 +118,7 @@ export function buildGraph(input: BuildInput): GraphData {
 				}
 				addNode(id, 'unresolved', null, node.level + 1, node.id);
 			}
-			addLink(node.id, id);
+			addLink(node.id, id, index.kindOf(node.id, linktext));
 		}
 	}
 
@@ -125,6 +126,7 @@ export function buildGraph(input: BuildInput): GraphData {
 		nodes.get(link.source as string)!.degree++;
 		nodes.get(link.target as string)!.degree++;
 	}
+	assignLanes([...links.values()]);
 
 	let nodeList = [...nodes.values()];
 	if (!settings.showOrphans) nodeList = nodeList.filter((n) => n.degree > 0);
@@ -141,14 +143,32 @@ export function buildGraph(input: BuildInput): GraphData {
 		links: [...links.values()],
 		groups: input.groups.labels,
 		clusters: [],
+		linkLabels: settings.linkProperties,
 		matchCount,
 		truncated,
 	};
 }
 
+/** Spread links between the same two notes into lanes centred on the line between them. */
+function assignLanes(links: GraphLink[]): void {
+	const pairs = new Map<string, GraphLink[]>();
+	for (const link of links) {
+		const [a, b] = [link.source as string, link.target as string].sort();
+		const key = `${a}\n${b}`;
+		const list = pairs.get(key);
+		if (list) list.push(link);
+		else pairs.set(key, [link]);
+	}
+	for (const list of pairs.values()) {
+		if (list.length < 2) continue;
+		list.sort((x, y) => x.kind - y.kind);
+		list.forEach((link, i) => (link.lane = i - (list.length - 1) / 2));
+	}
+}
+
 function neighboursOf(
 	path: string,
-	index: LinkIndex,
+	index: Links,
 	settings: GraphViewSettings,
 ): string[] {
 	const out = settings.direction !== 'incoming' ? index.outgoing(path) : [];

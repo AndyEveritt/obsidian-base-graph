@@ -2,6 +2,8 @@
 type: body
 category: planet
 orbits: "[[Sun]]"
+moons: ["[[Enceladus]]", "[[Titan]]"]
+visited_by: ["[[Voyager 1]]", "[[Voyager 2]]", "[[Cassini-Huygens]]"]
 ---
 A gas giant known for its bright ring system.
 

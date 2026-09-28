@@ -17,11 +17,39 @@ views:
       - country
       - category
       - agency
+      - crew
+      - missions
+      - status
     showArrows: false
     depth: 0
     clusterBy: note.type
     clusterByGroup: true
     clusterOutlines: true
+  - type: base-graph
+    name: Relationships
+    groupBy:
+      property: type
+      direction: ASC
+    order:
+      - file.name
+      - agency
+      - category
+      - country
+      - launched
+      - mission_type
+      - orbits
+      - role
+      - targets
+      - type
+    linkProperties:
+      - targets
+      - visited_by
+      - orbits
+      - moons
+      - crew
+      - missions
+      - agency
+    showArrows: true
   - type: table
     name: Table
     order:

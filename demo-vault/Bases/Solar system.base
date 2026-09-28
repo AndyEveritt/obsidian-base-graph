@@ -9,6 +9,19 @@ views:
       direction: ASC
     depth: 0
   - type: base-graph
+    name: Moons
+    groupBy:
+      property: category
+      direction: ASC
+    order:
+      - category
+      - orbits
+      - moons
+    linkProperties:
+      - orbits
+      - moons
+    showArrows: true
+  - type: base-graph
     name: Visited by
     groupBy:
       property: category

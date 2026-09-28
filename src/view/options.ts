@@ -26,6 +26,10 @@ export interface GraphViewSettings {
 	depth: number;
 	direction: LinkDirection;
 	includeAttachments: boolean;
+	/** Property names to draw links from, or empty to use all links. */
+	linkProperties: string[];
+	/** Also keep links that aren't from a link property. */
+	otherLinks: boolean;
 	showUnresolved: boolean;
 	showOrphans: boolean;
 	maxNodes: number;
@@ -77,6 +81,7 @@ function slider(key: SliderKey, displayName: string) {
 export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 	const depthIsZero = () => readNumber(config, 'depth') === 0;
 	const byGroup = () => readBool(config, 'clusterByGroup', false);
+	const allLinks = () => readLinkProperties(config).length === 0;
 	const notClustered = () => !byGroup() && !config.getAsPropertyId('clusterBy');
 	return [
 		slider('depth', 'Depth'),
@@ -94,6 +99,18 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			displayName: 'Include attachments',
 			default: false,
 			shouldHide: depthIsZero,
+		},
+		{
+			type: 'multitext',
+			key: 'linkProperties',
+			displayName: 'Link properties',
+		},
+		{
+			type: 'toggle',
+			key: 'otherLinks',
+			displayName: 'Include other links',
+			default: false,
+			shouldHide: allLinks,
 		},
 		{
 			type: 'toggle',
@@ -180,6 +197,19 @@ function readNumber(config: BasesViewConfig, key: SliderKey): number {
 	return Math.min(spec.max, Math.max(spec.min, value));
 }
 
+/** Property names, accepting `note.` ids too, without blanks or duplicates. */
+function readLinkProperties(config: BasesViewConfig): string[] {
+	const raw = config.get('linkProperties');
+	const list: unknown[] = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(',') : [];
+	const names = new Map<string, string>();
+	for (const item of list) {
+		if (typeof item !== 'string') continue;
+		const name = item.trim().replace(/^note\./, '');
+		if (name && !names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
+	}
+	return [...names.values()];
+}
+
 function readBool(
 	config: BasesViewConfig,
 	key: string,
@@ -199,6 +229,8 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 				? (direction as LinkDirection)
 				: 'both',
 		includeAttachments: readBool(config, 'includeAttachments', false),
+		linkProperties: readLinkProperties(config),
+		otherLinks: readBool(config, 'otherLinks', false),
 		showUnresolved: readBool(config, 'showUnresolved', false),
 		showOrphans: readBool(config, 'showOrphans', true),
 		maxNodes: readNumber(config, 'maxNodes'),

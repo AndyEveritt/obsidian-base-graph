@@ -4,6 +4,7 @@ agency: ["[[NASA]]"]
 launched: 1970
 mission_type: crewed
 targets: ["[[Moon]]"]
+crew: ["[[Jim Lovell]]", "[[Jack Swigert]]", "[[Fred Haise]]"]
 ---
 A planned lunar landing aborted after an oxygen tank failed. Commanded by [[Jim Lovell]], the crew returned safely on a [[Free-return trajectory]].
 

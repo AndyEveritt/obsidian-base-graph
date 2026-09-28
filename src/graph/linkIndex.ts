@@ -1,11 +1,26 @@
 import type { MetadataCache } from 'obsidian';
 
+/** Where the graph's links come from. */
+export interface Links {
+	/** Paths of existing files a note links to. */
+	outgoing(path: string): string[];
+	/** Paths of notes linking to a file. */
+	incoming(path: string): string[];
+	/** Link text of links from a note to files that don't exist. */
+	unresolved(path: string): string[];
+	/**
+	 * Index of the link property a link came from, or -1 for any other link.
+	 * `target` is a path, or the link text of an unresolved link.
+	 */
+	kindOf(source: string, target: string): number;
+}
+
 /**
- * Link lookups over the metadata cache. Outgoing links read `resolvedLinks`
+ * All links, from the metadata cache. Outgoing links read `resolvedLinks`
  * directly; backlinks need a reverse index, which is built lazily and
  * discarded whenever the cache changes.
  */
-export class LinkIndex {
+export class LinkIndex implements Links {
 	private incomingMap: Map<string, string[]> | null = null;
 
 	constructor(private metadataCache: MetadataCache) {}
@@ -25,6 +40,10 @@ export class LinkIndex {
 	incoming(path: string): string[] {
 		if (!this.incomingMap) this.incomingMap = this.buildIncoming();
 		return this.incomingMap.get(path) ?? [];
+	}
+
+	kindOf(): number {
+		return -1;
 	}
 
 	private buildIncoming(): Map<string, string[]> {

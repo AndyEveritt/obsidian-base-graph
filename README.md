@@ -7,6 +7,7 @@ Adds a **Graph** view to [Obsidian Bases](https://help.obsidian.md/bases). The n
 - **Filters:** use the normal Bases toolbar to add, edit and remove filters. The graph updates as you change them.
 - **Depth:** like the local graph, also show notes up to _n_ links away from the base's results. Choose whether to follow links, backlinks or both.
 - **Groups:** if the base is grouped, each group gets its own colour and appears in the legend.
+- **Link properties:** draw only the links in chosen properties, such as `parent` or `blocks`, to graph relationships like an org chart or task dependencies. Each property's links get their own colour.
 - **Clusters:** optionally pull notes that share a property value together, separately from how they're coloured.
 - **Embeds:** works anywhere a base does, including `![[Projects.base#Graph]]` and inline `base` code blocks.
 
@@ -26,6 +27,7 @@ Using the graph:
 - Select the pin on the card, or **Pin highlight** in the node's menu, to keep that note and its links highlighted. Select an empty part of the graph to unpin it.
 - Hover with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> held for a page preview.
 - Right-click a node for the file menu.
+- Hover an item in the legend to highlight that group's notes or that link property's links. Select it to keep the highlight, and select it again to clear it.
 
 ### View options
 
@@ -36,6 +38,8 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Depth | How many links away from the base's results to include (0–5). |
 | Follow | Follow links, backlinks, or both when expanding depth. |
 | Include attachments | Include linked attachments when expanding depth. |
+| Link properties | Names of note properties to draw links from, such as `parent` or `related`. Depth follows only these links. Leave empty to use all links. |
+| Include other links | With link properties set, also draw all other links, in the usual colour. |
 | Show unresolved links | Show links to notes that don't exist. |
 | Show orphans | Show results that aren't linked to anything in the graph. |
 | Label property | Property to use as the node label. Defaults to the file name. |
@@ -88,7 +92,8 @@ src/
   main.ts                 Registers the Bases view and hover source
   constants.ts
   graph/
-    linkIndex.ts          Outgoing links, plus a lazily built backlink index
+    linkIndex.ts          All links, plus a lazily built backlink index
+    propertyLinks.ts      Only the links in chosen properties, from frontmatter links
     buildGraph.ts         Base results → nodes and links, with depth expansion
     types.ts
   view/

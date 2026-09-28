@@ -28,6 +28,25 @@ views:
     showArrows: true
     height: 600
   - type: base-graph
+    name: Crew
+    filters:
+      and:
+        - mission_type == "crewed"
+    groupBy:
+      property: launched
+      direction: ASC
+    order:
+      - launched
+      - crew
+      - missions
+      - role
+    depth: 1
+    direction: outgoing
+    linkProperties:
+      - crew
+      - missions
+    showArrows: true
+  - type: base-graph
     name: Since 2010
     filters:
       and:

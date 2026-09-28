@@ -71,3 +71,9 @@ export function readTheme(el: HTMLElement): ThemeColors {
 export function groupColor(theme: ThemeColors, group: number): string {
 	return theme.groups[group % theme.groups.length]!;
 }
+
+/** Colour for links from a link property. Taken from the end of the palette so it rarely matches a group's. */
+export function linkColor(theme: ThemeColors, kind: number): string {
+	const n = theme.groups.length;
+	return theme.groups[n - 1 - (kind % n)]!;
+}

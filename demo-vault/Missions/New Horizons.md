@@ -4,6 +4,7 @@ agency: ["[[NASA]]"]
 launched: 2006
 mission_type: flyby
 targets: ["[[Jupiter]]", "[[Pluto]]", "[[Charon]]", "[[Arrokoth]]"]
+scientists: ["[[Alan Stern]]"]
 ---
 Made the first flyby of [[Pluto]] and [[Charon]] in 2015, then visited [[Arrokoth]] in the [[Kuiper belt]]. Led by [[Alan Stern]].
 

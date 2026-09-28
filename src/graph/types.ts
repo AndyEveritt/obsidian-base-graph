@@ -29,8 +29,22 @@ export interface GraphLink extends SimulationLinkDatum<GraphNode> {
 	id: string;
 	source: GraphNode | string;
 	target: GraphNode | string;
+	/** Index into `GraphData.linkLabels` of the property the link came from, or -1 for any other link. */
+	kind: number;
 	/** Both notes link to each other. */
 	mutual: boolean;
+	/**
+	 * Sideways offset, in gaps between parallel links, when the two notes have several
+	 * links between them, such as from different link properties. 0 for a single link.
+	 */
+	lane: number;
+}
+
+/** Something selected in the legend: a group's notes, or the links from one link property. */
+export interface LegendHighlight {
+	type: 'group' | 'link';
+	/** Index into `GraphData.groups` or `GraphData.linkLabels`. */
+	index: number;
 }
 
 export interface GraphData {
@@ -39,6 +53,8 @@ export interface GraphData {
 	groups: string[];
 	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
 	clusters: string[];
+	/** Names of the link properties edges are drawn from, or empty when all links are used. */
+	linkLabels: string[];
 	matchCount: number;
 	/** True when neighbour expansion stopped at the node limit. */
 	truncated: boolean;

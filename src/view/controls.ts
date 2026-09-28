@@ -1,26 +1,31 @@
 import { debounce, setIcon, setTooltip } from 'obsidian';
-import type { GraphData } from '../graph/types';
-import { groupColor, type ThemeColors } from '../render/theme';
+import type { GraphData, LegendHighlight } from '../graph/types';
+import { groupColor, linkColor, type ThemeColors } from '../render/theme';
 import { DEPTH_RANGE, type GraphViewSettings } from './options';
 
 export interface ControlHandlers {
 	setDepth(depth: number): void;
 	fit(): void;
-	/** Highlight the nodes in a group, or clear the highlight with null. */
-	highlightGroup(group: number | null): void;
+	/** Highlight a group's notes or a link property's links, or clear the highlight with null. */
+	highlight(highlight: LegendHighlight | null): void;
 }
 
-/** Overlay with a depth slider like the local graph's, plus a status line and group legend. */
+interface LegendEntry {
+	highlight: LegendHighlight;
+	label: string;
+	el: HTMLElement;
+}
+
+/** Overlay with a depth slider like the local graph's, plus a status line and a legend of groups and link properties. */
 export class GraphControls {
 	private depthInput: HTMLInputElement;
 	private depthValueEl: HTMLElement;
 	private statusEl: HTMLElement;
 	private legendEl: HTMLElement;
-	private legendItems: HTMLElement[] = [];
-	private hoveredGroup: number | null = null;
-	/** Group locked by clicking its legend item. Kept by label so it survives groups being reordered. */
-	private lockedLabel: string | null = null;
-	private lockedGroup: number | null = null;
+	private entries: LegendEntry[] = [];
+	private hovered: LegendHighlight | null = null;
+	/** Item locked by clicking it. Kept by label so it survives groups being reordered. */
+	private locked: { type: LegendHighlight['type']; label: string } | null = null;
 
 	constructor(
 		parentEl: HTMLElement,
@@ -77,50 +82,69 @@ export class GraphControls {
 		this.statusEl.toggleClass('mod-warning', data.truncated);
 
 		this.legendEl.empty();
-		this.legendItems = data.groups.map((label, i) => {
-			const item = this.legendEl.createDiv({ cls: 'base-graph-legend-item' });
-			item.createSpan({ cls: 'base-graph-legend-swatch' }).setCssProps({
-				'--swatch-color': groupColor(theme, i),
-			});
-			item.createSpan({ text: label });
-			item.addEventListener('mouseenter', () => this.setHoveredGroup(i));
-			item.addEventListener('mouseleave', () => this.setHoveredGroup(null));
-			item.addEventListener('click', () => this.toggleLock(i, label));
-			return item;
+		this.entries = [];
+		data.groups.forEach((label, i) => {
+			this.addEntry({ type: 'group', index: i }, label, groupColor(theme, i));
+		});
+		data.linkLabels.forEach((label, i) => {
+			this.addEntry({ type: 'link', index: i }, label, linkColor(theme, i));
 		});
 
-		const locked = this.lockedLabel === null ? -1 : data.groups.indexOf(this.lockedLabel);
-		this.lockedGroup = locked >= 0 ? locked : null;
-		if (this.lockedGroup === null) this.lockedLabel = null;
-		// The hovered item was just replaced, so its mouseleave won't fire if the group is gone.
-		if (this.hoveredGroup !== null && this.hoveredGroup >= data.groups.length) {
-			this.hoveredGroup = null;
+		// Items were just replaced, so drop a lock or hover whose item is gone.
+		if (this.locked && !this.entries.some((e) => this.isLocked(e))) this.locked = null;
+		const hovered = this.hovered;
+		if (hovered && !this.entries.some((e) => sameHighlight(e.highlight, hovered))) {
+			this.hovered = null;
 		}
 		this.applyHighlight();
 	}
 
-	/** Clear the group locked from the legend, if any. */
-	unlockGroup(): void {
-		this.lockedGroup = null;
-		this.lockedLabel = null;
+	/** Clear the item locked from the legend, if any. */
+	unlock(): void {
+		this.locked = null;
 		this.applyHighlight();
 	}
 
-	private setHoveredGroup(group: number | null): void {
-		this.hoveredGroup = group;
+	private addEntry(highlight: LegendHighlight, label: string, color: string): void {
+		const el = this.legendEl.createDiv({ cls: 'base-graph-legend-item' });
+		const swatch = highlight.type === 'link' ? 'base-graph-legend-swatch mod-line' : 'base-graph-legend-swatch';
+		el.createSpan({ cls: swatch }).setCssProps({
+			'--swatch-color': color,
+		});
+		el.createSpan({ text: label });
+		const entry: LegendEntry = { highlight, label, el };
+		el.addEventListener('mouseenter', () => this.setHovered(highlight));
+		el.addEventListener('mouseleave', () => this.setHovered(null));
+		el.addEventListener('click', () => this.toggleLock(entry));
+		this.entries.push(entry);
+	}
+
+	private setHovered(highlight: LegendHighlight | null): void {
+		this.hovered = highlight;
 		this.applyHighlight();
 	}
 
-	private toggleLock(group: number, label: string): void {
-		const unlock = this.lockedGroup === group;
-		this.lockedGroup = unlock ? null : group;
-		this.lockedLabel = unlock ? null : label;
+	private isLocked(entry: LegendEntry): boolean {
+		return this.locked?.type === entry.highlight.type && this.locked.label === entry.label;
+	}
+
+	private toggleLock(entry: LegendEntry): void {
+		this.locked = this.isLocked(entry) ? null : { type: entry.highlight.type, label: entry.label };
 		this.applyHighlight();
 	}
 
-	/** Hovering previews a group; otherwise the locked group, if any, stays highlighted. */
+	/** Hovering previews an item; otherwise the locked item, if any, stays highlighted. */
 	private applyHighlight(): void {
-		this.legendItems.forEach((item, i) => item.toggleClass('is-active', i === this.lockedGroup));
-		this.handlers.highlightGroup(this.hoveredGroup ?? this.lockedGroup);
+		let locked: LegendHighlight | null = null;
+		for (const entry of this.entries) {
+			const isLocked = this.isLocked(entry);
+			entry.el.toggleClass('is-active', isLocked);
+			if (isLocked) locked = entry.highlight;
+		}
+		this.handlers.highlight(this.hovered ?? locked);
 	}
+}
+
+function sameHighlight(a: LegendHighlight, b: LegendHighlight): boolean {
+	return a.type === b.type && a.index === b.index;
 }

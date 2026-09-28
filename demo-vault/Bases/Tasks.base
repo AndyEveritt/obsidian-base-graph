@@ -1,0 +1,32 @@
+filters:
+  and:
+    - type == "task"
+views:
+  - type: base-graph
+    name: Dependencies
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - status
+      - blocked_by
+      - blocks
+    linkProperties:
+      - blocked_by
+    showArrows: true
+  - type: base-graph
+    name: Both directions
+    groupBy:
+      property: status
+      direction: ASC
+    linkProperties:
+      - blocked_by
+      - blocks
+    showArrows: true
+  - type: table
+    name: Table
+    order:
+      - file.name
+      - status
+      - blocked_by
+      - blocks

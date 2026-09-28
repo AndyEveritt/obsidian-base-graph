@@ -2,7 +2,8 @@ import type { ZoomTransform } from 'd3-zoom';
 import type { GraphLink, GraphNode } from '../graph/types';
 import type { DisplaySettings } from '../view/options';
 import { drawClusterLabels, drawClusterShapes } from './clusterShapes';
-import { groupColor, type ThemeColors } from './theme';
+import type { Point } from './hull';
+import { groupColor, linkColor, type ThemeColors } from './theme';
 
 export interface DrawState {
 	nodes: GraphNode[];
@@ -17,6 +18,8 @@ export interface DrawState {
 	focus: GraphNode | null;
 	/** Nodes that stay bright while everything else is dimmed, or null when nothing is dimmed. */
 	focusSet: Set<GraphNode> | null;
+	/** Link property whose links are highlighted, with the notes at their ends in `focusSet`. */
+	highlightKind: number | null;
 	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
 	clusterLabels: string[];
 }
@@ -29,7 +32,7 @@ export function nodeRadius(node: GraphNode, display: DisplaySettings): number {
 }
 
 export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
-	const { transform: t, dpr, theme, display, focus, focusSet } = s;
+	const { transform: t, dpr, theme, display, focus, focusSet, highlightKind } = s;
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, s.width, s.height);
 	ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
@@ -41,20 +44,20 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	// With a focused node only its own links are highlighted, not those between its neighbours.
 	const isHighlighted: ((l: GraphLink) => boolean) | null = focus
 		? (l) => l.source === focus || l.target === focus
-		: focusSet
-			? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
-			: null;
+		: highlightKind !== null
+			? (l) => l.kind === highlightKind
+			: focusSet
+				? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
+				: null;
 
 	ctx.lineWidth = lineWidth;
-	ctx.strokeStyle = theme.line;
-	ctx.fillStyle = theme.arrow;
 	ctx.globalAlpha = isHighlighted ? DIMMED : 1;
-	drawLinks(ctx, s, isHighlighted ? s.links.filter((l) => !isHighlighted(l)) : s.links);
+	const rest = isHighlighted ? s.links.filter((l) => !isHighlighted(l)) : s.links;
+	drawLinksByKind(ctx, s, rest, theme.line, theme.arrow);
 	if (isHighlighted) {
 		ctx.globalAlpha = 1;
-		ctx.strokeStyle = theme.lineHighlight;
-		ctx.fillStyle = theme.lineHighlight;
-		drawLinks(ctx, s, s.links.filter(isHighlighted));
+		const highlighted = s.links.filter(isHighlighted);
+		drawLinksByKind(ctx, s, highlighted, theme.lineHighlight, theme.lineHighlight);
 	}
 
 	for (const node of s.nodes) {
@@ -71,47 +74,100 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	ctx.globalAlpha = 1;
 }
 
+/**
+ * Links from a link property in that property's colour, and other links in the given
+ * colours, batched so each colour is a single path.
+ */
+function drawLinksByKind(
+	ctx: CanvasRenderingContext2D,
+	s: DrawState,
+	links: GraphLink[],
+	line: string,
+	arrow: string,
+): void {
+	const byKind = new Map<number, GraphLink[]>();
+	for (const link of links) {
+		const list = byKind.get(link.kind);
+		if (list) list.push(link);
+		else byKind.set(link.kind, [link]);
+	}
+	for (const [kind, list] of byKind) {
+		const color = kind >= 0 ? linkColor(s.theme, kind) : null;
+		ctx.strokeStyle = color ?? line;
+		ctx.fillStyle = color ?? arrow;
+		drawLinks(ctx, s, list);
+	}
+}
+
 function drawLinks(
 	ctx: CanvasRenderingContext2D,
 	s: DrawState,
 	links: GraphLink[],
 ): void {
+	const size = 3 + 2 * ctx.lineWidth;
+	// Wide enough for arrowheads on parallel links not to overlap.
+	const gap = size * 1.2;
+	const lines = links.map((link) => linkLine(link, gap));
+
 	ctx.beginPath();
-	for (const link of links) {
-		const a = link.source as GraphNode;
-		const b = link.target as GraphNode;
-		ctx.moveTo(a.x!, a.y!);
-		ctx.lineTo(b.x!, b.y!);
+	for (const [a, b] of lines) {
+		ctx.moveTo(a[0], a[1]);
+		ctx.lineTo(b[0], b[1]);
 	}
 	ctx.stroke();
 
 	if (!s.display.showArrows) return;
-	const size = 3 + 2 * ctx.lineWidth;
 	ctx.beginPath();
-	for (const link of links) {
-		const a = link.source as GraphNode;
-		const b = link.target as GraphNode;
-		arrowHead(ctx, a, b, nodeRadius(b, s.display), size);
-		if (link.mutual) arrowHead(ctx, b, a, nodeRadius(a, s.display), size);
-	}
+	links.forEach((link, i) => {
+		const [a, b] = lines[i]!;
+		const offset = link.lane * gap;
+		const source = link.source as GraphNode;
+		const target = link.target as GraphNode;
+		arrowHead(ctx, a, b, insetFor(nodeRadius(target, s.display), offset), size);
+		if (link.mutual) arrowHead(ctx, b, a, insetFor(nodeRadius(source, s.display), offset), size);
+	});
 	ctx.fill();
 }
 
+/** A link's end points, shifted sideways by its lane so parallel links don't overlap. */
+function linkLine(link: GraphLink, gap: number): [Point, Point] {
+	const a = link.source as GraphNode;
+	const b = link.target as GraphNode;
+	if (!link.lane) return [[a.x!, a.y!], [b.x!, b.y!]];
+	// Shift relative to a fixed order of the two notes, so every link between them shares one side.
+	const [p, q] = a.id < b.id ? [a, b] : [b, a];
+	const dx = q.x! - p.x!;
+	const dy = q.y! - p.y!;
+	const len = Math.hypot(dx, dy) || 1;
+	const ox = (-dy / len) * link.lane * gap;
+	const oy = (dx / len) * link.lane * gap;
+	return [
+		[a.x! + ox, a.y! + oy],
+		[b.x! + ox, b.y! + oy],
+	];
+}
+
+/** How far back from the end of a line shifted sideways by `offset` it meets a node's edge. */
+function insetFor(radius: number, offset: number): number {
+	return Math.sqrt(Math.max(0, radius * radius - offset * offset));
+}
+
+/** An arrowhead pointing along `from` → `to`, with its tip `inset` back from `to`. */
 function arrowHead(
 	ctx: CanvasRenderingContext2D,
-	from: GraphNode,
-	to: GraphNode,
-	radius: number,
+	from: Point,
+	to: Point,
+	inset: number,
 	size: number,
 ): void {
-	const dx = to.x! - from.x!;
-	const dy = to.y! - from.y!;
+	const dx = to[0] - from[0];
+	const dy = to[1] - from[1];
 	const len = Math.hypot(dx, dy);
-	if (len <= radius + size) return;
+	if (len <= inset + size) return;
 	const ux = dx / len;
 	const uy = dy / len;
-	const tipX = to.x! - ux * radius;
-	const tipY = to.y! - uy * radius;
+	const tipX = to[0] - ux * inset;
+	const tipY = to[1] - uy * inset;
 	const baseX = tipX - ux * size;
 	const baseY = tipY - uy * size;
 	const half = size * 0.5;
