@@ -14,6 +14,7 @@ import type { GraphData, GraphNode } from '../graph/types';
 import type BaseGraphPlugin from '../main';
 import { GraphRenderer } from '../render/renderer';
 import { GraphControls } from './controls';
+import { GroupResolver } from './groups';
 import { readSettings, type GraphViewSettings } from './options';
 
 export class GraphBasesView extends BasesView implements HoverParent {
@@ -28,7 +29,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 	private structure = '';
 
 	constructor(
-		controller: QueryController,
+		private controller: QueryController,
 		hostEl: HTMLElement,
 		private plugin: BaseGraphPlugin,
 	) {
@@ -77,8 +78,10 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		const settings = readSettings(this.config);
 		this.rootEl.setCssProps({ '--base-graph-height': `${settings.height}px` });
 
+		const groups = new GroupResolver(this, this.controller);
 		const graph = buildGraph({
-			...this.collectSeeds(settings),
+			seeds: this.collectSeeds(settings, groups.isGrouped),
+			groups,
 			index: this.plugin.linkIndex,
 			settings,
 			getFile: (path) => this.app.vault.getFileByPath(path),
@@ -105,29 +108,20 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		this.controls.update(settings, graph, this.renderer.theme);
 	}
 
-	private collectSeeds(settings: GraphViewSettings): {
-		seeds: SeedEntry[];
-		groups: string[];
-	} {
-		const grouped = this.data.groupedData;
-		const hasGroups = grouped.length > 1 || grouped.some((g) => g.hasKey());
-		const groups = hasGroups
-			? grouped.map((g) => (g.hasKey() ? String(g.key?.toString()) : 'None'))
-			: [];
-
+	private collectSeeds(settings: GraphViewSettings, isGrouped: boolean): SeedEntry[] {
 		const seeds: SeedEntry[] = [];
-		grouped.forEach((group, i) => {
+		this.data.groupedData.forEach((group, i) => {
 			for (const entry of group.entries) {
 				const { labelProperty, sizeProperty } = settings;
 				seeds.push({
 					file: entry.file,
-					group: hasGroups ? i : -1,
+					group: isGrouped ? i : -1,
 					label: labelProperty ? valueText(entry.getValue(labelProperty)) : null,
 					size: sizeProperty ? valueNumber(entry.getValue(sizeProperty)) : null,
 				});
 			}
 		});
-		return { seeds, groups };
+		return seeds;
 	}
 
 	private openNode(node: GraphNode, evt: MouseEvent): void {

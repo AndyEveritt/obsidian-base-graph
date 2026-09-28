@@ -4,9 +4,6 @@ filters:
 views:
   - type: base-graph
     name: Graph
-    filters:
-      and:
-        - file.hasLink("Solar system/Sun.md")
     groupBy:
       property: type
       direction: ASC

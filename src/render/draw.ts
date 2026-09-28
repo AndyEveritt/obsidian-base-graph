@@ -119,7 +119,10 @@ function nodeStyle(
 				alpha: 1,
 			};
 		case 'neighbour':
-			return { color: theme.fill, alpha: 0.45 };
+			return {
+				color: node.group >= 0 ? groupColor(theme, node.group) : theme.fill,
+				alpha: 0.45,
+			};
 		case 'attachment':
 			return { color: theme.fillAttachment, alpha: 0.6 };
 		case 'unresolved':

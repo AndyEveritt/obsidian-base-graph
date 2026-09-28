@@ -1,4 +1,5 @@
 import type { TFile } from 'obsidian';
+import type { GroupResolver } from '../view/groups';
 import type { GraphViewSettings } from '../view/options';
 import type { LinkIndex } from './linkIndex';
 import type { GraphData, GraphLink, GraphNode, NodeKind } from './types';
@@ -14,7 +15,7 @@ export interface SeedEntry {
 
 export interface BuildInput {
 	seeds: SeedEntry[];
-	groups: string[];
+	groups: GroupResolver;
 	index: LinkIndex;
 	settings: GraphViewSettings;
 	getFile: (path: string) => TFile | null;
@@ -127,12 +128,17 @@ export function buildGraph(input: BuildInput): GraphData {
 	let nodeList = [...nodes.values()];
 	if (!settings.showOrphans) nodeList = nodeList.filter((n) => n.degree > 0);
 
+	// Resolved after filtering so hidden notes don't add groups to the legend.
+	for (const node of nodeList) {
+		if (node.kind === 'neighbour') node.group = input.groups.groupOf(node.file!);
+	}
+
 	assignWeights(nodeList, seeds, settings);
 
 	return {
 		nodes: nodeList,
 		links: [...links.values()],
-		groups: input.groups,
+		groups: input.groups.labels,
 		matchCount,
 		truncated,
 	};

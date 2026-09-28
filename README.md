@@ -15,7 +15,7 @@ Requires Obsidian 1.10.2 or later with the Bases core plugin turned on.
 
 1. Open a `.base` file. In the view switcher, select **Add view**, then choose **Graph**.
 2. Set up filters from the toolbar as you would for a table.
-3. Drag the **Depth** slider in the top right to include linked notes. They're drawn faded so you can tell them apart from notes the base matched.
+3. Drag the **Depth** slider in the top right to include linked notes. They take the colour of their group but are drawn faded, so you can tell them apart from notes the base matched.
 
 Using the graph:
 
@@ -88,6 +88,7 @@ src/
     GraphBasesView.ts     The BasesView: rebuilds on data and link changes, opens files
     options.ts            View options and reading them from the view config
     controls.ts           Depth slider, fit button, status line and legend
+    groups.ts             Maps notes, including linked ones, to the base's groups
   render/
     renderer.ts           d3-force simulation, zoom/pan, dragging, hit testing
     draw.ts               Canvas drawing
