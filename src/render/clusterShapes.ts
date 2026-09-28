@@ -25,7 +25,7 @@ export interface ClusterShape {
 
 /**
  * Draws a faint rounded outline and background around each cluster, and returns
- * where each one's label goes. Clusters of a single node are left out.
+ * where each one's label goes.
  */
 export function drawClusterShapes(
 	ctx: CanvasRenderingContext2D,
@@ -43,7 +43,6 @@ export function drawClusterShapes(
 	const shapes: ClusterShape[] = [];
 	ctx.lineWidth = 1.5 / s.transform.k;
 	for (const [cluster, members] of clusters) {
-		if (members.length < 2) continue;
 		let radius = 0;
 		for (const node of members) radius = Math.max(radius, radiusOf(node));
 		const hull = convexHull(members.map((n): Point => [n.x!, n.y!]));

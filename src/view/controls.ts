@@ -1,6 +1,7 @@
 import { debounce, setIcon, setTooltip } from 'obsidian';
 import type { GraphData, LegendHighlight } from '../graph/types';
 import { groupColor, linkColor, type ThemeColors } from '../render/theme';
+import { displayText } from './linkText';
 import { DEPTH_RANGE, type GraphViewSettings } from './options';
 
 export interface ControlHandlers {
@@ -111,7 +112,7 @@ export class GraphControls {
 		el.createSpan({ cls: swatch }).setCssProps({
 			'--swatch-color': color,
 		});
-		el.createSpan({ text: label });
+		el.createSpan({ text: displayText(label) });
 		const entry: LegendEntry = { highlight, label, el };
 		el.addEventListener('mouseenter', () => this.setHovered(highlight));
 		el.addEventListener('mouseleave', () => this.setHovered(null));
