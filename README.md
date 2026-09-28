@@ -47,7 +47,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Size property | Numeric property that sets node size. Defaults to the number of links. |
 | Cluster by group | Cluster notes by the base's groups instead of by a property. Notes in several groups, from a list, are in each of their groups' clusters. |
 | Cluster by | Property whose values the notes are clustered by. Notes without a value aren't clustered. Each cluster gets a faint outline, background and label, in its group's colour if all its notes share one. |
-| Display | Node size, link thickness, scale links by link count, text fade threshold, arrows, cluster outlines, height when embedded, and the node limit. |
+| Display | Node size, link thickness and opacity, scale links by link count, text fade threshold, arrows, cluster outlines, height when embedded, and the node limit. |
 | Forces | Center, repel and link forces, and link distance. Link distance also sets the gap between rings. Cluster force sets how tightly clusters pull together, and cluster repel force how firmly notes are kept out of clusters they aren't in. |
 
 ![](docs/BaseSettings.png)

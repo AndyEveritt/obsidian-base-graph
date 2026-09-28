@@ -21,6 +21,8 @@ export interface ForceSettings {
 export interface DisplaySettings {
 	nodeSize: number;
 	linkThickness: number;
+	/** Opacity of links that aren't highlighted. */
+	linkOpacity: number;
 	/** Draw links thicker, and pull their notes closer, the more times the two notes link to each other. */
 	scaleLinksByCount: boolean;
 	textFade: number;
@@ -62,6 +64,7 @@ const SLIDERS = {
 	height: { min: 200, max: 1200, step: 50, default: 400 },
 	nodeSize: { min: 0.25, max: 3, step: 0.05, default: 1 },
 	linkThickness: { min: 0.25, max: 5, step: 0.25, default: 1 },
+	linkOpacity: { min: 0.05, max: 1, step: 0.05, default: 1 },
 	textFade: { min: -3, max: 3, step: 0.1, default: 0 },
 	centerForce: { min: 0, max: 1, step: 0.01, default: 0.1 },
 	repelForce: { min: 0, max: 20, step: 0.5, default: 10 },
@@ -176,6 +179,7 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			items: [
 				slider('nodeSize', 'Node size'),
 				slider('linkThickness', 'Link thickness'),
+				slider('linkOpacity', 'Link opacity'),
 				{
 					type: 'toggle',
 					key: 'scaleLinksByCount',
@@ -276,6 +280,7 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 		display: {
 			nodeSize: readNumber(config, 'nodeSize'),
 			linkThickness: readNumber(config, 'linkThickness'),
+			linkOpacity: readNumber(config, 'linkOpacity'),
 			scaleLinksByCount: readBool(config, 'scaleLinksByCount', false),
 			textFade: readNumber(config, 'textFade'),
 			showArrows: readBool(config, 'showArrows', false),

@@ -67,7 +67,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	const view = viewBounds(s);
 	const links = s.links.filter((l) => linkInView(s, view, l));
 
-	ctx.globalAlpha = isHighlighted ? DIMMED : 1;
+	ctx.globalAlpha = (isHighlighted ? DIMMED : 1) * display.linkOpacity;
 	const rest = isHighlighted ? links.filter((l) => !isHighlighted(l)) : links;
 	drawLinksByKind(ctx, s, rest, theme.line, theme.arrow);
 	if (isHighlighted) {
