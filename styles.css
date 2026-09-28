@@ -82,6 +82,20 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-2-2);
+	/* The footer ignores the pointer so the graph underneath stays usable; items opt back in for hover. */
+	pointer-events: auto;
+	cursor: var(--cursor);
+}
+
+.base-graph-legend-item:hover,
+.base-graph-legend-item.is-active {
+	color: var(--text-normal);
+}
+
+.base-graph-legend-item.is-active .base-graph-legend-swatch {
+	box-shadow:
+		0 0 0 2px var(--background-primary),
+		0 0 0 3px var(--swatch-color);
 }
 
 .base-graph-legend-swatch {

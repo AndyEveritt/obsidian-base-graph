@@ -56,6 +56,8 @@ export class GraphRenderer {
 	private height = 0;
 	private dpr = 1;
 	private hovered: GraphNode | null = null;
+	/** Group whose legend item is hovered; its nodes stay bright. */
+	private highlightedGroup: number | null = null;
 	private drag: DragState | null = null;
 	/** Keep the camera fitted to the graph until the user pans or zooms. */
 	private autoFit = true;
@@ -163,6 +165,12 @@ export class GraphRenderer {
 			this.applyForces();
 			this.simulation.alpha(0.3).restart();
 		}
+		this.scheduleDraw();
+	}
+
+	highlightGroup(group: number | null): void {
+		if (group === this.highlightedGroup) return;
+		this.highlightedGroup = group;
 		this.scheduleDraw();
 	}
 
@@ -297,6 +305,9 @@ export class GraphRenderer {
 		if (focus) {
 			focusSet = new Set(this.adjacency.get(focus));
 			focusSet.add(focus);
+		} else if (this.highlightedGroup !== null) {
+			const group = this.highlightedGroup;
+			focusSet = new Set(this.nodes.filter((n) => n.group === group));
 		}
 		drawGraph(this.ctx, {
 			nodes: this.nodes,

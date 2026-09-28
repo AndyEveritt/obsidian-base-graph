@@ -6,6 +6,8 @@ import { DEPTH_RANGE, type GraphViewSettings } from './options';
 export interface ControlHandlers {
 	setDepth(depth: number): void;
 	fit(): void;
+	/** Highlight the nodes in a group, or clear the highlight with null. */
+	highlightGroup(group: number | null): void;
 }
 
 /** Overlay with a depth slider like the local graph's, plus a status line and group legend. */
@@ -14,8 +16,16 @@ export class GraphControls {
 	private depthValueEl: HTMLElement;
 	private statusEl: HTMLElement;
 	private legendEl: HTMLElement;
+	private legendItems: HTMLElement[] = [];
+	private hoveredGroup: number | null = null;
+	/** Group locked by clicking its legend item. Kept by label so it survives groups being reordered. */
+	private lockedLabel: string | null = null;
+	private lockedGroup: number | null = null;
 
-	constructor(parentEl: HTMLElement, handlers: ControlHandlers) {
+	constructor(
+		parentEl: HTMLElement,
+		private handlers: ControlHandlers,
+	) {
 		const panel = parentEl.createDiv({ cls: 'base-graph-controls' });
 
 		const depthEl = panel.createDiv({ cls: 'base-graph-depth' });
@@ -67,12 +77,43 @@ export class GraphControls {
 		this.statusEl.toggleClass('mod-warning', data.truncated);
 
 		this.legendEl.empty();
-		data.groups.forEach((label, i) => {
+		this.legendItems = data.groups.map((label, i) => {
 			const item = this.legendEl.createDiv({ cls: 'base-graph-legend-item' });
 			item.createSpan({ cls: 'base-graph-legend-swatch' }).setCssProps({
 				'--swatch-color': groupColor(theme, i),
 			});
 			item.createSpan({ text: label });
+			item.addEventListener('mouseenter', () => this.setHoveredGroup(i));
+			item.addEventListener('mouseleave', () => this.setHoveredGroup(null));
+			item.addEventListener('click', () => this.toggleLock(i, label));
+			return item;
 		});
+
+		const locked = this.lockedLabel === null ? -1 : data.groups.indexOf(this.lockedLabel);
+		this.lockedGroup = locked >= 0 ? locked : null;
+		if (this.lockedGroup === null) this.lockedLabel = null;
+		// The hovered item was just replaced, so its mouseleave won't fire if the group is gone.
+		if (this.hoveredGroup !== null && this.hoveredGroup >= data.groups.length) {
+			this.hoveredGroup = null;
+		}
+		this.applyHighlight();
+	}
+
+	private setHoveredGroup(group: number | null): void {
+		this.hoveredGroup = group;
+		this.applyHighlight();
+	}
+
+	private toggleLock(group: number, label: string): void {
+		const unlock = this.lockedGroup === group;
+		this.lockedGroup = unlock ? null : group;
+		this.lockedLabel = unlock ? null : label;
+		this.applyHighlight();
+	}
+
+	/** Hovering previews a group; otherwise the locked group, if any, stays highlighted. */
+	private applyHighlight(): void {
+		this.legendItems.forEach((item, i) => item.toggleClass('is-active', i === this.lockedGroup));
+		this.handlers.highlightGroup(this.hoveredGroup ?? this.lockedGroup);
 	}
 }

@@ -1,3 +1,4 @@
 [
-  "base-graph"
+  "base-graph",
+  "hot-reload"
 ]

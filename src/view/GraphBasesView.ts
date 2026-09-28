@@ -42,6 +42,7 @@ export class GraphBasesView extends BasesView implements HoverParent {
 				this.rebuild();
 			},
 			fit: () => this.renderer?.fit(),
+			highlightGroup: (group) => this.renderer?.highlightGroup(group),
 		});
 	}
 

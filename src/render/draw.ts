@@ -14,6 +14,7 @@ export interface DrawState {
 	display: DisplaySettings;
 	/** Hovered or dragged node; it and its neighbours stay bright. */
 	focus: GraphNode | null;
+	/** Nodes that stay bright while everything else is dimmed, or null when nothing is dimmed. */
 	focusSet: Set<GraphNode> | null;
 }
 
@@ -31,18 +32,23 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): void {
 	ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
 
 	const lineWidth = Math.max(display.linkThickness, 0.4 / t.k);
-	const touchesFocus = (l: GraphLink) => l.source === focus || l.target === focus;
+	// With a focused node only its own links are highlighted, not those between its neighbours.
+	const isHighlighted: ((l: GraphLink) => boolean) | null = focus
+		? (l) => l.source === focus || l.target === focus
+		: focusSet
+			? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
+			: null;
 
 	ctx.lineWidth = lineWidth;
 	ctx.strokeStyle = theme.line;
 	ctx.fillStyle = theme.arrow;
-	ctx.globalAlpha = focus ? DIMMED : 1;
-	drawLinks(ctx, s, focus ? s.links.filter((l) => !touchesFocus(l)) : s.links);
-	if (focus) {
+	ctx.globalAlpha = isHighlighted ? DIMMED : 1;
+	drawLinks(ctx, s, isHighlighted ? s.links.filter((l) => !isHighlighted(l)) : s.links);
+	if (isHighlighted) {
 		ctx.globalAlpha = 1;
 		ctx.strokeStyle = theme.lineHighlight;
 		ctx.fillStyle = theme.lineHighlight;
-		drawLinks(ctx, s, s.links.filter(touchesFocus));
+		drawLinks(ctx, s, s.links.filter(isHighlighted));
 	}
 
 	for (const node of s.nodes) {
