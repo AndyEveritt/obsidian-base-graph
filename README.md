@@ -37,6 +37,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | --- | --- |
 | Depth | How many links away from the base's results to include (0–5). |
 | Follow | Follow links, backlinks, or both when expanding depth. |
+| Layout | **Free**, or **Rings by depth** to put the base's notes in the middle and linked notes in a ring for each step away. |
 | Include attachments | Include linked attachments when expanding depth. |
 | Link properties | Names of note properties to draw links from, such as `parent` or `related`. Depth follows only these links. Leave empty to use all links. |
 | Include other links | With link properties set, also draw all other links, in the usual colour. |
@@ -47,7 +48,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Cluster by group | Cluster notes by the base's groups instead of by a property. |
 | Cluster by | Property whose values the notes are clustered by. Notes without a value aren't clustered. Each cluster gets a faint outline, background and label, in its group's colour if all its notes share one. |
 | Display | Node size, link thickness, text fade threshold, arrows, cluster outlines, height when embedded, and the node limit. |
-| Forces | Center, repel and link forces, and link distance. Cluster force sets how tightly clusters pull together. |
+| Forces | Center, repel and link forces, and link distance. Link distance also sets the gap between rings. Cluster force sets how tightly clusters pull together. |
 
 ![](docs/BaseSettings.png)
 
@@ -108,6 +109,7 @@ src/
     renderer.ts           d3-force simulation, zoom/pan, dragging, hit testing
     clusterForce.ts       Force pulling each cluster towards its centre
     clusterShapes.ts      Cluster outlines, backgrounds and labels
+    rings.ts              Ring sizes for the rings by depth layout
     hull.ts               Convex hulls and rounded outlines for cluster shapes
     draw.ts               Canvas drawing
     theme.ts              Reads graph colours from the current theme

@@ -22,11 +22,14 @@ export interface DrawState {
 	highlightKind: number | null;
 	/** Labels of the clusters, indexed by `GraphNode.cluster`. */
 	clusterLabels: ClusterLabel[];
+	/** Radii of the depth rings to draw as guides, or empty when not using the ring layout. */
+	rings: number[];
 	/** Link in a cluster label that's hovered; it's underlined to show it can be selected. */
 	hoveredLabel: { cluster: number; part: number } | null;
 }
 
 const DIMMED = 0.15;
+const RING_ALPHA = 0.35;
 const LABEL_SIZE = 12;
 
 export function nodeRadius(node: GraphNode, display: DisplaySettings): number {
@@ -40,6 +43,7 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	ctx.clearRect(0, 0, s.width, s.height);
 	ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
 
+	drawRings(ctx, s);
 	const radiusOf = (node: GraphNode) => nodeRadius(node, display);
 	const clusters = display.clusterOutlines ? drawClusterShapes(ctx, s, radiusOf) : [];
 
@@ -76,6 +80,23 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	const hits = drawClusterLabels(ctx, s, clusters);
 	ctx.globalAlpha = 1;
 	return hits;
+}
+
+/** Faint dashed circles marking the depth rings, at a fixed screen width. */
+function drawRings(ctx: CanvasRenderingContext2D, s: DrawState): void {
+	const k = s.transform.k;
+	ctx.globalAlpha = RING_ALPHA;
+	ctx.strokeStyle = s.theme.line;
+	ctx.lineWidth = 1 / k;
+	ctx.setLineDash([4 / k, 4 / k]);
+	ctx.beginPath();
+	for (const radius of s.rings) {
+		if (radius <= 0) continue;
+		ctx.moveTo(radius, 0);
+		ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+	}
+	ctx.stroke();
+	ctx.setLineDash([]);
 }
 
 /**

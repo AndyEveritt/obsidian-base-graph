@@ -2,6 +2,7 @@ import {
 	forceCollide,
 	forceLink,
 	forceManyBody,
+	forceRadial,
 	forceSimulation,
 	forceX,
 	forceY,
@@ -26,6 +27,7 @@ import type { DisplaySettings, ForceSettings } from '../view/options';
 import { forceCluster } from './clusterForce';
 import type { LabelHit } from './clusterShapes';
 import { drawGraph, nodeRadius } from './draw';
+import { ringRadii } from './rings';
 import { readTheme, type ThemeColors } from './theme';
 
 export interface RendererCallbacks {
@@ -48,6 +50,8 @@ interface DragState {
 const SCALE_EXTENT: [number, number] = [0.05, 8];
 const FIT_PADDING = 30;
 const DRAG_THRESHOLD = 4;
+/** Strong enough to keep nodes near their ring, while links still pull them round it. */
+const RING_STRENGTH = 0.8;
 
 /** Canvas force-directed graph with zoom, pan, drag, hover and click. */
 export class GraphRenderer {
@@ -62,6 +66,8 @@ export class GraphRenderer {
 	private nodes: GraphNode[] = [];
 	private links: GraphLink[] = [];
 	private clusterLabels: ClusterLabel[] = [];
+	/** Ring radius for each depth level in the ring layout, or empty in the free layout. */
+	private rings: number[] = [];
 	/** Cluster labels that link to a note, where the last frame drew them. */
 	private labelHits: LabelHit[] = [];
 	private hoveredLabel: LabelHit | null = null;
@@ -171,6 +177,8 @@ export class GraphRenderer {
 		this.nodes = data.nodes;
 		this.links = data.links;
 		this.clusterLabels = data.clusters;
+		// The ring force reads each node's radius when the nodes are set, so update rings first.
+		this.updateRings();
 		this.simulation.nodes(this.nodes);
 		this.linkForce().links(this.links);
 
@@ -244,8 +252,18 @@ export class GraphRenderer {
 		>;
 	}
 
+	private updateRings(): void {
+		this.rings =
+			this.forces.layout === 'rings'
+				? ringRadii(this.nodes, (n) => nodeRadius(n, this.display), this.forces.linkDistance)
+				: [];
+	}
+
 	private applyForces(): void {
 		const f = this.forces;
+		this.updateRings();
+		// The rings do the centring, as the middle one has no radius.
+		const center = f.layout === 'rings' ? 0 : f.centerForce * 0.3;
 		const degree = (n: GraphNode | string) =>
 			typeof n === 'string' ? 1 : Math.max(1, n.degree);
 		this.simulation
@@ -257,8 +275,14 @@ export class GraphRenderer {
 					.strength((l) => f.linkForce / Math.min(degree(l.source), degree(l.target))),
 			)
 			.force('charge', forceManyBody<GraphNode>().strength(-f.repelForce * 15))
-			.force('x', forceX<GraphNode>(0).strength(f.centerForce * 0.3))
-			.force('y', forceY<GraphNode>(0).strength(f.centerForce * 0.3))
+			.force('x', forceX<GraphNode>(0).strength(center))
+			.force('y', forceY<GraphNode>(0).strength(center))
+			.force(
+				'rings',
+				f.layout === 'rings'
+					? forceRadial<GraphNode>((n) => this.rings[n.level] ?? 0).strength(RING_STRENGTH)
+					: null,
+			)
 			.force('cluster', forceCluster(f.clusterForce * 0.5))
 			.force(
 				'collide',
@@ -376,6 +400,7 @@ export class GraphRenderer {
 			focusSet,
 			highlightKind,
 			clusterLabels: this.clusterLabels,
+			rings: this.rings,
 			hoveredLabel: this.hoveredLabel,
 		});
 	}

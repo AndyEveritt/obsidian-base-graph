@@ -14,7 +14,7 @@ views:
   - type: base-graph
     name: Graph
     groupBy:
-      property: mission_type
+      property: agency
       direction: ASC
     order:
       - agency
@@ -22,11 +22,21 @@ views:
       - targets
       - formula.target_count
     clusterBy: note.agency
-    depth: 0
+    depth: 1
     direction: outgoing
     sizeProperty: formula.target_count
     showArrows: true
     height: 600
+    clusterByGroup: true
+  - type: base-graph
+    name: Rings
+    filters:
+      and:
+        - mission_type == "impactor"
+    order:
+      - file.name
+    depth: 2
+    layout: rings
   - type: base-graph
     name: Crew
     filters:
