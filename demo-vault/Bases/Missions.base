@@ -49,12 +49,14 @@ views:
     order:
       - launched
       - crew
+      - commander
       - missions
       - role
     depth: 1
     direction: outgoing
     linkProperties:
       - crew
+      - commander
       - missions
     showArrows: true
   - type: base-graph

@@ -9,15 +9,17 @@ export interface Links {
 	/** Link text of links from a note to files that don't exist. */
 	unresolved(path: string): string[];
 	/**
-	 * Index of the link property a link came from, or -1 for any other link.
-	 * `target` is a path, or the link text of an unresolved link.
+	 * The kinds of link from a note to `target`, one for each link property linking
+	 * to it. `target` is a path, or the link text of an unresolved link.
 	 */
-	kindOf(source: string, target: string): number;
-	/**
-	 * How many times a note links to `target`, counting only links of the kind
-	 * `kindOf` gives. `target` is a path, or the link text of an unresolved link.
-	 */
-	count(source: string, target: string): number;
+	kinds(source: string, target: string): LinkKind[];
+}
+
+export interface LinkKind {
+	/** Index of the link property the link came from, or -1 for any other link. */
+	kind: number;
+	/** How many times the note links to the target this way. */
+	count: number;
 }
 
 /**
@@ -47,13 +49,10 @@ export class LinkIndex implements Links {
 		return this.incomingMap.get(path) ?? [];
 	}
 
-	kindOf(): number {
-		return -1;
-	}
-
-	count(source: string, target: string): number {
+	kinds(source: string, target: string): LinkKind[] {
 		const { resolvedLinks, unresolvedLinks } = this.metadataCache;
-		return resolvedLinks[source]?.[target] ?? unresolvedLinks[source]?.[target] ?? 0;
+		const count = resolvedLinks[source]?.[target] ?? unresolvedLinks[source]?.[target] ?? 0;
+		return [{ kind: -1, count }];
 	}
 
 	private buildIncoming(): Map<string, string[]> {

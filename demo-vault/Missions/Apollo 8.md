@@ -5,6 +5,7 @@ launched: 1968
 mission_type: crewed
 targets: ["[[Moon]]"]
 crew: ["[[Frank Borman]]", "[[Jim Lovell]]", "[[William Anders]]"]
+commander: "[[Frank Borman]]"
 ---
 The first crewed flight to orbit the [[Moon]]. On Christmas Eve 1968 the crew photographed [[Earthrise]].
 

@@ -1,18 +1,11 @@
 import { getLinkpath, type MetadataCache, type TFile } from 'obsidian';
-import type { Links } from './linkIndex';
-
-interface PropertyLink {
-	/** Index of the first property linking to the target. */
-	kind: number;
-	/** How many times that property links to the target. */
-	count: number;
-}
+import type { LinkKind, Links } from './linkIndex';
 
 interface NoteLinks {
-	/** Target path → the property linking to it. */
-	resolved: Map<string, PropertyLink>;
-	/** Link text → the property linking to it. */
-	unresolved: Map<string, PropertyLink>;
+	/** Target path → the properties linking to it, in the order they were first seen. */
+	resolved: Map<string, LinkKind[]>;
+	/** Link text → the properties linking to it, in the order they were first seen. */
+	unresolved: Map<string, LinkKind[]>;
 }
 
 /**
@@ -51,17 +44,10 @@ export class PropertyLinks implements Links {
 		return this.withOthers(this.incomingMap.get(path) ?? [], (o) => o.incoming(path));
 	}
 
-	kindOf(source: string, target: string): number {
-		return this.ownLink(source, target)?.kind ?? -1;
-	}
-
-	count(source: string, target: string): number {
-		return this.ownLink(source, target)?.count ?? this.others?.count(source, target) ?? 0;
-	}
-
-	private ownLink(source: string, target: string): PropertyLink | undefined {
+	kinds(source: string, target: string): LinkKind[] {
 		const links = this.linksOf(source);
-		return links.resolved.get(target) ?? links.unresolved.get(target);
+		const own = links.resolved.get(target) ?? links.unresolved.get(target);
+		return own ?? this.others?.kinds(source, target) ?? [];
 	}
 
 	private withOthers(own: string[], others: (links: Links) => string[]): string[] {
@@ -80,9 +66,11 @@ export class PropertyLinks implements Links {
 			const linkpath = getLinkpath(ref.link);
 			const file = this.metadataCache.getFirstLinkpathDest(linkpath, path);
 			const [map, key] = file ? [links.resolved, file.path] : [links.unresolved, linkpath];
-			const link = map.get(key);
-			if (!link) map.set(key, { kind, count: 1 });
-			else if (link.kind === kind) link.count++;
+			let kinds = map.get(key);
+			if (!kinds) map.set(key, (kinds = []));
+			const link = kinds.find((k) => k.kind === kind);
+			if (link) link.count++;
+			else kinds.push({ kind, count: 1 });
 		}
 		return links;
 	}

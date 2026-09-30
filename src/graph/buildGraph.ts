@@ -94,18 +94,19 @@ export function buildGraph(input: BuildInput): GraphData {
 	// `key` is the target as the index knows it: its path, or its link text when unresolved.
 	const addLink = (source: string, target: string, key: string) => {
 		if (source === target) return;
-		const kind = index.kindOf(source, key);
-		const count = Math.max(1, index.count(source, key));
 		// Links from different properties, such as parent and child, stay separate.
-		const reverse = links.get(`${target}\n${source}`);
-		if (reverse?.kind === kind) {
-			reverse.count += count;
-			reverse.mutual = true;
-			return;
-		}
-		const id = `${source}\n${target}`;
-		if (!links.has(id)) {
-			links.set(id, { id, source, target, kind, mutual: false, count, lane: 0, laneCount: count });
+		for (const { kind, count: n } of index.kinds(source, key)) {
+			const count = Math.max(1, n);
+			const reverse = links.get(`${target}\n${source}\n${kind}`);
+			if (reverse) {
+				reverse.count += count;
+				reverse.mutual = true;
+				continue;
+			}
+			const id = `${source}\n${target}\n${kind}`;
+			if (!links.has(id)) {
+				links.set(id, { id, source, target, kind, mutual: false, count, lane: 0, laneCount: count });
+			}
 		}
 	};
 

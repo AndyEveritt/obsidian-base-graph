@@ -49,7 +49,9 @@ views:
       - crew
       - missions
       - agency
+      - commander
     showArrows: true
+    otherLinks: false
   - type: table
     name: Table
     order:
