@@ -27,7 +27,7 @@ Using the graph:
 - Select the pin on the card, or **Pin highlight** in the node's menu, to keep that note and its links highlighted. Select an empty part of the graph to unpin it.
 - Hover with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> held for a page preview.
 - Right-click a node for the file menu.
-- Hover an item in the legend to highlight that group's notes or that link property's links. Select it to keep the highlight, and select it again to clear it.
+- Hover an item in the legend to highlight that group's notes or that link property's links. Select it to keep the highlight, and select it again to clear it. Hold **Ctrl** (**Cmd** on macOS) while selecting to highlight several items at once.
 
 ### View options
 

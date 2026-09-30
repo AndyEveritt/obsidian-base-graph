@@ -1,4 +1,4 @@
-import { debounce, setIcon, setTooltip } from 'obsidian';
+import { debounce, Keymap, setIcon, setTooltip } from 'obsidian';
 import type { GraphData, LegendHighlight } from '../graph/types';
 import { groupColor, linkColor, type ThemeColors } from '../render/theme';
 import { displayText } from './linkText';
@@ -7,8 +7,8 @@ import { DEPTH_RANGE, type GraphViewSettings } from './options';
 export interface ControlHandlers {
 	setDepth(depth: number): void;
 	fit(): void;
-	/** Highlight a group's notes or a link property's links, or clear the highlight with null. */
-	highlight(highlight: LegendHighlight | null): void;
+	/** Highlight groups' notes and link properties' links, or clear the highlight with an empty list. */
+	highlight(highlights: LegendHighlight[]): void;
 }
 
 interface LegendEntry {
@@ -25,8 +25,8 @@ export class GraphControls {
 	private legendEl: HTMLElement;
 	private entries: LegendEntry[] = [];
 	private hovered: LegendHighlight | null = null;
-	/** Item locked by clicking it. Kept by label so it survives groups being reordered. */
-	private locked: { type: LegendHighlight['type']; label: string } | null = null;
+	/** Items locked by clicking them. Kept by label so they survive groups being reordered. */
+	private locked: { type: LegendHighlight['type']; label: string }[] = [];
 
 	constructor(
 		parentEl: HTMLElement,
@@ -91,8 +91,10 @@ export class GraphControls {
 			this.addEntry({ type: 'link', index: i }, label, linkColor(theme, i));
 		});
 
-		// Items were just replaced, so drop a lock or hover whose item is gone.
-		if (this.locked && !this.entries.some((e) => this.isLocked(e))) this.locked = null;
+		// Items were just replaced, so drop locks or a hover whose item is gone.
+		this.locked = this.locked.filter((lock) =>
+			this.entries.some((e) => e.highlight.type === lock.type && e.label === lock.label),
+		);
 		const hovered = this.hovered;
 		if (hovered && !this.entries.some((e) => sameHighlight(e.highlight, hovered))) {
 			this.hovered = null;
@@ -100,9 +102,9 @@ export class GraphControls {
 		this.applyHighlight();
 	}
 
-	/** Clear the item locked from the legend, if any. */
+	/** Clear the items locked from the legend, if any. */
 	unlock(): void {
-		this.locked = null;
+		this.locked = [];
 		this.applyHighlight();
 	}
 
@@ -116,7 +118,7 @@ export class GraphControls {
 		const entry: LegendEntry = { highlight, label, el };
 		el.addEventListener('mouseenter', () => this.setHovered(highlight));
 		el.addEventListener('mouseleave', () => this.setHovered(null));
-		el.addEventListener('click', () => this.toggleLock(entry));
+		el.addEventListener('click', (evt) => this.toggleLock(entry, Keymap.isModifier(evt, 'Mod')));
 		this.entries.push(entry);
 	}
 
@@ -126,23 +128,34 @@ export class GraphControls {
 	}
 
 	private isLocked(entry: LegendEntry): boolean {
-		return this.locked?.type === entry.highlight.type && this.locked.label === entry.label;
+		return this.locked.some((l) => l.type === entry.highlight.type && l.label === entry.label);
 	}
 
-	private toggleLock(entry: LegendEntry): void {
-		this.locked = this.isLocked(entry) ? null : { type: entry.highlight.type, label: entry.label };
+	/** Clicking locks just this item, or unlocks it; with Ctrl (Cmd on macOS) it's added to or removed from the others. */
+	private toggleLock(entry: LegendEntry, multiple: boolean): void {
+		const isLocked = this.isLocked(entry);
+		if (multiple) {
+			this.locked = isLocked
+				? this.locked.filter((l) => l.type !== entry.highlight.type || l.label !== entry.label)
+				: [...this.locked, { type: entry.highlight.type, label: entry.label }];
+		} else {
+			this.locked =
+				isLocked && this.locked.length === 1
+					? []
+					: [{ type: entry.highlight.type, label: entry.label }];
+		}
 		this.applyHighlight();
 	}
 
-	/** Hovering previews an item; otherwise the locked item, if any, stays highlighted. */
+	/** Hovering previews an item; otherwise the locked items, if any, stay highlighted. */
 	private applyHighlight(): void {
-		let locked: LegendHighlight | null = null;
+		const locked: LegendHighlight[] = [];
 		for (const entry of this.entries) {
 			const isLocked = this.isLocked(entry);
 			entry.el.toggleClass('is-active', isLocked);
-			if (isLocked) locked = entry.highlight;
+			if (isLocked) locked.push(entry.highlight);
 		}
-		this.handlers.highlight(this.hovered ?? locked);
+		this.handlers.highlight(this.hovered ? [this.hovered] : locked);
 	}
 }
 

@@ -79,8 +79,8 @@ export class GraphRenderer {
 	private hovered: GraphNode | null = null;
 	/** Node that stays highlighted when nothing else is hovered or highlighted. */
 	private pinnedNode: GraphNode | null = null;
-	/** Legend item hovered or locked; its group's nodes, or its property's links, stay bright. */
-	private legendHighlight: LegendHighlight | null = null;
+	/** Legend items hovered or locked; their groups' nodes, and their properties' links, stay bright. */
+	private legendHighlights: LegendHighlight[] = [];
 	private drag: DragState | null = null;
 	/** Keep the camera fitted to the graph until the user pans or zooms. */
 	private autoFit = true;
@@ -219,10 +219,13 @@ export class GraphRenderer {
 		this.scheduleDraw();
 	}
 
-	highlight(highlight: LegendHighlight | null): void {
-		const current = this.legendHighlight;
-		if (highlight?.type === current?.type && highlight?.index === current?.index) return;
-		this.legendHighlight = highlight;
+	highlight(highlights: LegendHighlight[]): void {
+		const current = this.legendHighlights;
+		const same =
+			highlights.length === current.length &&
+			highlights.every((h, i) => h.type === current[i]!.type && h.index === current[i]!.index);
+		if (same) return;
+		this.legendHighlights = highlights;
 		this.scheduleDraw();
 	}
 
@@ -383,20 +386,24 @@ export class GraphRenderer {
 
 	private draw(): void {
 		// The legend takes over from the pin, so it still works while a node is pinned.
-		const legend = this.legendHighlight;
-		const focus = this.drag?.node ?? this.hovered ?? (legend ? null : this.pinnedNode);
+		const legend = this.legendHighlights;
+		const focus = this.drag?.node ?? this.hovered ?? (legend.length ? null : this.pinnedNode);
 		let focusSet: Set<GraphNode> | null = null;
-		let highlightKind: number | null = null;
+		let highlightLink: ((link: GraphLink) => boolean) | null = null;
 		if (focus) {
 			focusSet = new Set(this.adjacency.get(focus));
 			focusSet.add(focus);
-		} else if (legend?.type === 'group') {
-			focusSet = new Set(this.nodes.filter((n) => n.groups.includes(legend.index)));
-		} else if (legend?.type === 'link') {
-			highlightKind = legend.index;
-			focusSet = new Set();
+		} else if (legend.length) {
+			// The chosen groups' notes and the links between them, plus the chosen properties' links.
+			const groups = new Set(legend.filter((h) => h.type === 'group').map((h) => h.index));
+			const kinds = new Set(legend.filter((h) => h.type === 'link').map((h) => h.index));
+			const inGroups = new Set(this.nodes.filter((n) => n.groups.some((g) => groups.has(g))));
+			highlightLink = (l) =>
+				kinds.has(l.kind) ||
+				(inGroups.has(l.source as GraphNode) && inGroups.has(l.target as GraphNode));
+			focusSet = new Set(inGroups);
 			for (const link of this.links) {
-				if (link.kind !== highlightKind) continue;
+				if (!kinds.has(link.kind)) continue;
 				focusSet.add(link.source as GraphNode);
 				focusSet.add(link.target as GraphNode);
 			}
@@ -412,7 +419,7 @@ export class GraphRenderer {
 			display: this.display,
 			focus,
 			focusSet,
-			highlightKind,
+			highlightLink,
 			clusterLabels: this.clusterLabels,
 			rings: this.rings,
 			hoveredLabel: this.hoveredLabel,

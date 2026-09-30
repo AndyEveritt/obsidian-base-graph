@@ -18,8 +18,8 @@ export interface DrawState {
 	focus: GraphNode | null;
 	/** Nodes that stay bright while everything else is dimmed, or null when nothing is dimmed. */
 	focusSet: Set<GraphNode> | null;
-	/** Link property whose links are highlighted, with the notes at their ends in `focusSet`. */
-	highlightKind: number | null;
+	/** Links highlighted from the legend, with the notes at their ends in `focusSet`. */
+	highlightLink: ((link: GraphLink) => boolean) | null;
 	/** Labels of the clusters, indexed by `GraphNode.clusters`. */
 	clusterLabels: ClusterLabel[];
 	/** Radii of the depth rings to draw as guides, or empty when not using the ring layout. */
@@ -45,7 +45,7 @@ export function linkScale(count: number, display: DisplaySettings): number {
 
 /** Draws the graph, returning where the cluster labels that can be selected were drawn. */
 export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit[] {
-	const { transform: t, dpr, theme, display, focus, focusSet, highlightKind } = s;
+	const { transform: t, dpr, theme, display, focus, focusSet, highlightLink } = s;
 	ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	ctx.clearRect(0, 0, s.width, s.height);
 	ctx.setTransform(dpr * t.k, 0, 0, dpr * t.k, dpr * t.x, dpr * t.y);
@@ -57,11 +57,10 @@ export function drawGraph(ctx: CanvasRenderingContext2D, s: DrawState): LabelHit
 	// With a focused node only its own links are highlighted, not those between its neighbours.
 	const isHighlighted: ((l: GraphLink) => boolean) | null = focus
 		? (l) => l.source === focus || l.target === focus
-		: highlightKind !== null
-			? (l) => l.kind === highlightKind
-			: focusSet
+		: (highlightLink ??
+			(focusSet
 				? (l) => focusSet.has(l.source as GraphNode) && focusSet.has(l.target as GraphNode)
-				: null;
+				: null));
 
 	// Only what's in view is drawn.
 	const view = viewBounds(s);
