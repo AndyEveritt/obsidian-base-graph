@@ -9,6 +9,7 @@ export default defineConfig(
 		'demo-vault',
 		'esbuild.config.mjs',
 		'version-bump.mjs',
+		'copy-to-demo.mjs',
 		'versions.json',
 		'main.js',
 		'package.json',
