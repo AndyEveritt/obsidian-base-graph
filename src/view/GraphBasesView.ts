@@ -110,7 +110,12 @@ export class GraphBasesView extends BasesView implements HoverParent {
 		if (settings.clusterByGroup) {
 			graph.clusters = clusterByGroup(graph.nodes, graph.groups);
 		} else if (clusterBy) {
-			graph.clusters = clusterByProperty(graph.nodes, (file) => entries.valueOf(file, clusterBy));
+			graph.clusters = clusterByProperty(
+				graph.nodes,
+				(file) => entries.valueOf(file, clusterBy),
+				(linkpath, sourcePath) =>
+					this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath)?.path ?? null,
+			);
 		}
 
 		if (this.renderer) {

@@ -28,6 +28,18 @@ export function displayText(value: string): string {
 		.join('');
 }
 
+/**
+ * Text with each link replaced by the path of the note it resolves to, so links to one
+ * note match however they're written, like `[[ProjA]]` and `[[folder/ProjA|Project A]]`.
+ * Unresolved links keep their link text. Headings and blocks are dropped.
+ */
+export function resolvedText(value: string, resolve: (linkpath: string) => string | null): string {
+	return value.replace(WIKILINK, (_, inner: string) => {
+		const { path } = parseLinktext(inner.split('|')[0]!.trim());
+		return `[[${resolve(path) ?? path}]]`;
+	});
+}
+
 /** The alias if there is one, otherwise the linked note's name without its folder. */
 function linkDisplay(inner: string): string {
 	const [target = '', alias] = inner.split('|');

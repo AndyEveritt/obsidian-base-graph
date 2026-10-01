@@ -1,28 +1,31 @@
 import type { TFile, Value } from 'obsidian';
 import type { ClusterLabel, GraphNode } from '../graph/types';
-import { linkParts } from './linkText';
+import { linkParts, resolvedText } from './linkText';
 
 /**
  * Sets each node's cluster from a property, so notes with the same value can be pulled
- * together. Nodes without a value aren't clustered. Returns the clusters' labels.
+ * together. Links to the same note match however they're written. Nodes without a value
+ * aren't clustered. Returns the clusters' labels.
  */
 export function clusterByProperty(
 	nodes: GraphNode[],
 	valueOf: (file: TFile) => Value | null,
+	resolveLink: (linkpath: string, sourcePath: string) => string | null,
 ): ClusterLabel[] {
 	// Keyed by text rather than Value.looseEquals, which would be quadratic in the number of values.
 	const clusters = new Map<string, number>();
 	const labels: ClusterLabel[] = [];
 	for (const node of nodes) {
-		const key = node.file ? valueOf(node.file)?.toString().trim() : '';
-		if (!key) {
+		const text = node.file ? valueOf(node.file)?.toString().trim() : '';
+		if (!text) {
 			node.clusters = [];
 			continue;
 		}
+		const key = resolvedText(text, (linkpath) => resolveLink(linkpath, node.id));
 		let cluster = clusters.get(key);
 		if (cluster === undefined) {
 			clusters.set(key, (cluster = clusters.size));
-			labels.push({ parts: linkParts(key, node.id) });
+			labels.push({ parts: linkParts(text, node.id) });
 		}
 		node.clusters = [cluster];
 	}
