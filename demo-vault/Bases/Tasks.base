@@ -17,7 +17,7 @@ views:
     showArrows: true
     clusterBy: note.project
   - type: base-graph
-    name: Top down
+    name: Left to right
     groupBy:
       property: status
       direction: ASC
@@ -28,7 +28,8 @@ views:
       - blocks
     linkProperties:
       - blocked_by
-    layout: topDown
+    layout: layered
+    layerDirection: right
     showArrows: true
     clusterBy: note.project
     centerForce: 0.51

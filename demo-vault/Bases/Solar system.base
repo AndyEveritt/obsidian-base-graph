@@ -31,9 +31,8 @@ views:
       - orbits
     linkProperties:
       - orbits
-    layout: topDown
+    layout: layered
     showArrows: true
-    clusterByGroup: true
     centerForce: 0.04
     linkDistance: 100
     repelForce: 10

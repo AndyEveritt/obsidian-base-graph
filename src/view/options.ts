@@ -5,11 +5,14 @@ import type {
 } from 'obsidian';
 
 export type LinkDirection = 'both' | 'outgoing' | 'incoming';
-export type Layout = 'free' | 'rings' | 'topDown';
+export type Layout = 'free' | 'rings' | 'layered';
+/** Where the layered layout puts notes that don't link to anything, with each layer after it. */
+export type LayerDirection = 'down' | 'up' | 'right' | 'left';
 
 export interface ForceSettings {
 	/** Rings fall back to free when depth is 0, since there are no rings to put notes on. */
 	layout: Layout;
+	layerDirection: LayerDirection;
 	centerForce: number;
 	repelForce: number;
 	linkForce: number;
@@ -81,7 +84,14 @@ export const DEPTH_RANGE = SLIDERS.depth;
 const LAYOUTS: Record<Layout, string> = {
 	free: 'Free',
 	rings: 'Rings by depth',
-	topDown: 'Top down',
+	layered: 'Layered',
+};
+
+const LAYER_DIRECTIONS: Record<LayerDirection, string> = {
+	down: 'Top to bottom',
+	up: 'Bottom to top',
+	right: 'Left to right',
+	left: 'Right to left',
 };
 
 const DIRECTIONS: Record<LinkDirection, string> = {
@@ -96,7 +106,7 @@ function slider(key: SliderKey, displayName: string) {
 
 export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 	const depthIsZero = () => readNumber(config, 'depth') === 0;
-	const inRings = () => readLayout(config, readNumber(config, 'depth')) === 'rings';
+	const layout = () => readLayout(config, readNumber(config, 'depth'));
 	const byGroup = () => readBool(config, 'clusterByGroup', false);
 	const allLinks = () => readLinkProperties(config).length === 0;
 	const notClustered = () => !byGroup() && !config.getAsPropertyId('clusterBy');
@@ -116,6 +126,14 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			displayName: 'Layout',
 			default: 'free',
 			options: LAYOUTS,
+		},
+		{
+			type: 'dropdown',
+			key: 'layerDirection',
+			displayName: 'Direction',
+			default: 'down',
+			options: LAYER_DIRECTIONS,
+			shouldHide: () => layout() !== 'layered',
 		},
 		{
 			type: 'toggle',
@@ -209,7 +227,7 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			displayName: 'Forces',
 			items: [
 				// The rings keep the graph centred instead.
-				{ ...slider('centerForce', 'Center force'), shouldHide: inRings },
+				{ ...slider('centerForce', 'Center force'), shouldHide: () => layout() === 'rings' },
 				slider('repelForce', 'Repel force'),
 				slider('linkForce', 'Link force'),
 				slider('linkDistance', 'Link distance'),
@@ -245,7 +263,7 @@ function readLinkProperties(config: BasesViewConfig): string[] {
 
 function readLayout(config: BasesViewConfig, depth: number): Layout {
 	const layout = config.get('layout');
-	if (layout === 'topDown') return 'topDown';
+	if (layout === 'layered') return 'layered';
 	return depth > 0 && layout === 'rings' ? 'rings' : 'free';
 }
 
@@ -260,6 +278,7 @@ function readBool(
 
 export function readSettings(config: BasesViewConfig): GraphViewSettings {
 	const direction = config.get('direction');
+	const layerDirection = config.get('layerDirection');
 	const clusterByGroup = readBool(config, 'clusterByGroup', false);
 	const depth = Math.round(readNumber(config, 'depth'));
 	return {
@@ -290,6 +309,10 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 		},
 		forces: {
 			layout: readLayout(config, depth),
+			layerDirection:
+				typeof layerDirection === 'string' && layerDirection in LAYER_DIRECTIONS
+					? (layerDirection as LayerDirection)
+					: 'down',
 			centerForce: readNumber(config, 'centerForce'),
 			repelForce: readNumber(config, 'repelForce'),
 			linkForce: readNumber(config, 'linkForce'),
