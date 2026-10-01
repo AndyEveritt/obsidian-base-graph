@@ -34,6 +34,7 @@ views:
     clusterBy: note.project
     centerForce: 0.51
     otherLinks: false
+    depth: 0
   - type: base-graph
     name: Both directions
     groupBy:

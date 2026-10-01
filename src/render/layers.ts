@@ -9,43 +9,61 @@ const endId = (end: GraphNode | string) => (typeof end === 'string' ? end : end.
  * Layer of each node in the layered layout, by node id. Notes with no outgoing links
  * are layer 0, and every other note is one layer after the furthest note it links to, so
  * links always point back towards layer 0. Mutual links don't say which note comes
- * first, so they're ignored, and a link that would close a cycle is skipped.
+ * first, so they're ignored.
+ *
+ * A link that would close a cycle is skipped too. Links are taken in the order of the link
+ * properties, then other links, so when properties disagree, such as `blocked_by` and
+ * `blocks` between the same notes, the property listed first decides.
  */
 export function nodeLayers(nodes: GraphNode[], links: GraphLink[]): Map<string, number> {
 	const targets = new Map<string, string[]>(nodes.map((n) => [n.id, []]));
-	for (const link of links) {
+	const priority = (link: GraphLink) => (link.kind < 0 ? Infinity : link.kind);
+	for (const link of [...links].sort((a, b) => priority(a) - priority(b))) {
 		if (link.mutual) continue;
-		targets.get(endId(link.source))?.push(endId(link.target));
+		const source = endId(link.source);
+		const target = endId(link.target);
+		const out = targets.get(source);
+		if (!out || !targets.has(target) || reaches(targets, target, source)) continue;
+		out.push(target);
 	}
 
 	const layers = new Map<string, number>();
-	const visiting = new Set<string>();
 	// Iterative depth-first search, as long chains of links could overflow the stack.
 	for (const root of targets.keys()) {
 		if (layers.has(root)) continue;
 		const stack: { id: string; next: number }[] = [{ id: root, next: 0 }];
-		visiting.add(root);
 		while (stack.length > 0) {
 			const top = stack[stack.length - 1]!;
 			const out = targets.get(top.id)!;
 			if (top.next < out.length) {
 				const target = out[top.next++]!;
-				if (layers.has(target) || visiting.has(target) || !targets.has(target)) continue;
-				visiting.add(target);
-				stack.push({ id: target, next: 0 });
+				if (!layers.has(target)) stack.push({ id: target, next: 0 });
 				continue;
 			}
 			let layer = 0;
-			for (const target of out) {
-				const above = layers.get(target);
-				if (above !== undefined) layer = Math.max(layer, above + 1);
-			}
+			for (const target of out) layer = Math.max(layer, layers.get(target)! + 1);
 			layers.set(top.id, layer);
-			visiting.delete(top.id);
 			stack.pop();
 		}
 	}
 	return layers;
+}
+
+/** Whether `to` can be reached from `from` by following links. */
+function reaches(targets: Map<string, string[]>, from: string, to: string): boolean {
+	if (from === to) return true;
+	const seen = new Set([from]);
+	const stack = [from];
+	while (stack.length > 0) {
+		for (const next of targets.get(stack.pop()!)!) {
+			if (next === to) return true;
+			if (!seen.has(next)) {
+				seen.add(next);
+				stack.push(next);
+			}
+		}
+	}
+	return false;
 }
 
 /**

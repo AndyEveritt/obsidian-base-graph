@@ -56,7 +56,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 
 ### Layered layout
 
-**Layered** suits links that only go one way, such as a `parent` property, task dependencies, or moons that orbit planets that orbit the Sun. Notes that don't link to anything are in the first layer, the notes linking to them are in the next layer, and so on. With **Direction** set to **Top to bottom**, the first layer is the top row. Linked notes are lined up with each other, and with clustering on, each cluster's notes stay together in every layer. Links in both directions are ignored when placing notes.
+**Layered** suits links that only go one way, such as a `parent` property, task dependencies, or moons that orbit planets that orbit the Sun. Notes that don't link to anything are in the first layer, the notes linking to them are in the next layer, and so on. With **Direction** set to **Top to bottom**, the first layer is the top row. Linked notes are lined up with each other, and with clustering on, each cluster's notes stay together in every layer. When two notes link to each other through the same property, that link is ignored when placing them. When properties disagree, such as `blocked_by` and `blocks` between the same notes, the property listed first in **Link properties** decides, and other links come last.
 
 ![Layered layout of the solar system from top to bottom, clustered by category](docs/Layered.png)
 
