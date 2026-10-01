@@ -13,6 +13,8 @@ export interface ForceSettings {
 	/** Rings fall back to free when depth is 0, since there are no rings to put notes on. */
 	layout: Layout;
 	layerDirection: LayerDirection;
+	/** In the layered layout, give each cluster its own layers instead of sharing them. */
+	separateClusters: boolean;
 	centerForce: number;
 	repelForce: number;
 	linkForce: number;
@@ -134,6 +136,13 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			default: 'down',
 			options: LAYER_DIRECTIONS,
 			shouldHide: () => layout() !== 'layered',
+		},
+		{
+			type: 'toggle',
+			key: 'separateClusters',
+			displayName: 'Lay out clusters separately',
+			default: false,
+			shouldHide: () => layout() !== 'layered' || notClustered(),
 		},
 		{
 			type: 'toggle',
@@ -313,6 +322,7 @@ export function readSettings(config: BasesViewConfig): GraphViewSettings {
 				typeof layerDirection === 'string' && layerDirection in LAYER_DIRECTIONS
 					? (layerDirection as LayerDirection)
 					: 'down',
+			separateClusters: readBool(config, 'separateClusters', false),
 			centerForce: readNumber(config, 'centerForce'),
 			repelForce: readNumber(config, 'repelForce'),
 			linkForce: readNumber(config, 'linkForce'),

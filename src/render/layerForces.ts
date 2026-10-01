@@ -83,3 +83,25 @@ export function forceLinksAcross(
 		}
 	};
 }
+
+/**
+ * Pulls each node towards a position across the layers. The position and strength are read
+ * on every tick, so they follow changes to the layout without the force being replaced.
+ */
+export function forceAcross(
+	axis: Axis,
+	target: (node: GraphNode) => number,
+	strength: () => number,
+) {
+	const cross = crossAxis(axis);
+	const v = VELOCITY[cross];
+	let nodes: GraphNode[] = [];
+	const force = (alpha: number) => {
+		const k = strength() * alpha;
+		for (const n of nodes) n[v] = n[v]! + (target(n) - n[cross]!) * k;
+	};
+	force.initialize = (n: GraphNode[]) => {
+		nodes = n;
+	};
+	return force;
+}

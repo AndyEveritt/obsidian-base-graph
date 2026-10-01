@@ -40,6 +40,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Follow | Follow links, backlinks, or both when expanding depth. |
 | Layout | **Free**; **Rings by depth** to put the base's notes in the middle and linked notes in a ring for each step away; or **Layered** for one-way links such as `parent`. See [Layered layout](#layered-layout). |
 | Direction | With **Layered**, which way the layers run: **Top to bottom**, **Bottom to top**, **Left to right** or **Right to left**. |
+| Lay out clusters separately | With **Layered** and clusters, give each cluster its own layers instead of sharing them. See [Layered layout](#layered-layout). |
 | Include attachments | Include linked attachments when expanding depth. |
 | Link properties | Names of note properties to draw links from, such as `parent` or `related`. Depth follows only these links. Leave empty to use all links. |
 | Include other links | With link properties set, also draw all other links, in the usual colour. |
@@ -59,6 +60,10 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 **Layered** suits links that only go one way, such as a `parent` property, task dependencies, or moons that orbit planets that orbit the Sun. Notes that don't link to anything are in the first layer, the notes linking to them are in the next layer, and so on. With **Direction** set to **Top to bottom**, the first layer is the top row. Linked notes are lined up with each other, and with clustering on, each cluster's notes stay together in every layer. When two notes link to each other through the same property, that link is ignored when placing them. When properties disagree, such as `blocked_by` and `blocks` between the same notes, the property listed first in **Link properties** decides, and other links come last.
 
 ![Layered layout of the solar system from top to bottom, clustered by category](docs/Layered.png)
+
+Turn on **Lay out clusters separately** to lay out each cluster as its own small graph instead, from only the links inside it, with the clusters packed into rows to fit the view. Links between clusters are still drawn, but don't affect where notes go.
+
+![Task dependencies laid out from left to right, with each project's cluster laid out separately](docs/LayeredClusters.png)
 
 ### Embedding
 
@@ -119,6 +124,7 @@ src/
     clusterShapes.ts      Cluster outlines, backgrounds and labels
     rings.ts              Ring sizes for the rings by depth layout
     layers.ts             Layers, and the order within them, for the layered layout
+    layered.ts            Positions for the layered layout, packing clusters laid out separately
     layerForces.ts        Forces holding notes in their layers and lining up linked notes
     hull.ts               Convex hulls and rounded outlines for cluster shapes
     draw.ts               Canvas drawing

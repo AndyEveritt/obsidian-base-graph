@@ -39,6 +39,7 @@ views:
     otherLinks: false
     clusterByGroup: true
     depth: 1
+    separateClusters: false
   - type: base-graph
     name: Visited by
     groupBy:

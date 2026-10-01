@@ -32,9 +32,12 @@ views:
     layerDirection: right
     showArrows: true
     clusterBy: note.project
-    centerForce: 0.51
+    centerForce: 0.37
     otherLinks: false
     depth: 0
+    separateClusters: true
+    clusterForce: 0.56
+    clusterRepelForce: 0.42
   - type: base-graph
     name: Both directions
     groupBy:

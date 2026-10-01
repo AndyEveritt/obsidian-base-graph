@@ -27,8 +27,8 @@ import type { DisplaySettings, ForceSettings } from '../view/options';
 import { forceCluster, forceClusterRepel } from './clusterForce';
 import type { LabelHit } from './clusterShapes';
 import { drawGraph, linkScale, nodeRadius } from './draw';
-import { crossAxis, forceLayers, forceLinksAcross, type Axis } from './layerForces';
-import { layerOrder, nodeLayers } from './layers';
+import { forceAcross, forceLayers, forceLinksAcross, type Axis } from './layerForces';
+import { layeredPlacement, type LayeredPlacement } from './layered';
 import { ringRadii } from './rings';
 import { readTheme, type ThemeColors } from './theme';
 
@@ -56,6 +56,8 @@ const DRAG_THRESHOLD = 4;
 const RING_STRENGTH = 0.8;
 /** Least space between neighbours in a layer in the layered layout, as a multiple of the link distance. */
 const LAYER_GAP = 1;
+/** How firmly separately laid out clusters hold their place, so they don't drift into each other. */
+const CLUSTER_ANCHOR_STRENGTH = 0.2;
 
 /** Canvas force-directed graph with zoom, pan, drag, hover and click. */
 export class GraphRenderer {
@@ -72,10 +74,8 @@ export class GraphRenderer {
 	private clusterLabels: ClusterLabel[] = [];
 	/** Ring radius for each depth level in the ring layout, or empty in the free layout. */
 	private rings: number[] = [];
-	/** Layer of each node by id in the layered layout, or empty in the other layouts. */
-	private layers = new Map<string, number>();
-	/** Place of each node by id within its layer, in the layered layout. */
-	private order = new Map<string, number>();
+	/** Where nodes go in the layered layout, or null in the other layouts. */
+	private placement: LayeredPlacement | null = null;
 	/** Cluster labels that link to a note, where the last frame drew them. */
 	private labelHits: LabelHit[] = [];
 	private hoveredLabel: LabelHit | null = null;
@@ -270,14 +270,27 @@ export class GraphRenderer {
 			layout === 'rings'
 				? ringRadii(this.nodes, (n) => nodeRadius(n, this.display), this.forces.linkDistance)
 				: [];
-		this.layers = layout === 'layered' ? nodeLayers(this.nodes, this.links) : new Map<string, number>();
-		this.order = layout === 'layered' ? this.layerOrder() : new Map<string, number>();
+		this.placeLayers();
 	}
 
-	/** Order within each layer, as `layerOrder`, from where the nodes are now. */
-	private layerOrder(sweeps?: number): Map<string, number> {
-		const across = crossAxis(this.layerAxis());
-		return layerOrder(this.nodes, this.links, this.layers, (n) => n[across], sweeps);
+	/** Place nodes for the layered layout, ordering layers from where the nodes are now. */
+	private placeLayers(sweeps?: number): void {
+		const f = this.forces;
+		if (f.layout !== 'layered') {
+			this.placement = null;
+			return;
+		}
+		const axis = this.layerAxis();
+		const aspect = this.width > 0 && this.height > 0 ? this.width / this.height : 1;
+		this.placement = layeredPlacement(this.nodes, this.links, {
+			axis,
+			// The first layer is at the top or left, or at the bottom or right when reversed.
+			step: f.layerDirection === 'up' || f.layerDirection === 'left' ? -1 : 1,
+			gap: f.linkDistance,
+			separateClusters: f.separateClusters,
+			aspect: axis === 'y' ? aspect : 1 / aspect,
+			sweeps,
+		});
 	}
 
 	private layerAxis(): Axis {
@@ -292,8 +305,12 @@ export class GraphRenderer {
 		const center = f.layout === 'rings' ? 0 : f.centerForce * 0.3;
 		const layered = f.layout === 'layered';
 		const axis = this.layerAxis();
-		// The first layer is at the top or left, or at the bottom or right when reversed.
-		const layerStep = f.layerDirection === 'up' || f.layerDirection === 'left' ? -1 : 1;
+		// Centres the graph across the layers, or holds separately laid out clusters in place.
+		const across = forceAcross(
+			axis,
+			(n) => this.placement?.across?.get(n.id) ?? 0,
+			() => (this.placement?.across ? CLUSTER_ANCHOR_STRENGTH : center),
+		);
 		const degree = (n: GraphNode | string) =>
 			typeof n === 'string' ? 1 : Math.max(1, n.degree);
 		// Capped at 1, as stronger links overshoot and oscillate.
@@ -319,12 +336,14 @@ export class GraphRenderer {
 			)
 			.force(
 				'linksAcross',
-				layered ? forceLinksAcross(axis, () => this.links, linkStrength) : null,
+				layered
+					? forceLinksAcross(axis, () => this.placement?.links ?? this.links, linkStrength)
+					: null,
 			)
 			.force('charge', forceManyBody<GraphNode>().strength(-f.repelForce * 15))
-			// The layers set the position along their axis, so centring is only across it.
-			.force('x', layered && axis === 'x' ? null : forceX<GraphNode>(0).strength(center))
-			.force('y', layered && axis === 'y' ? null : forceY<GraphNode>(0).strength(center))
+			// The layers set the position along their axis.
+			.force('x', !layered ? forceX<GraphNode>(0).strength(center) : axis === 'x' ? null : across)
+			.force('y', !layered ? forceY<GraphNode>(0).strength(center) : axis === 'y' ? null : across)
 			.force(
 				'rings',
 				f.layout === 'rings'
@@ -345,8 +364,8 @@ export class GraphRenderer {
 				layered
 					? forceLayers(
 							axis,
-							(n) => (this.layers.get(n.id) ?? 0) * f.linkDistance * layerStep,
-							(n) => this.order.get(n.id) ?? 0,
+							(n) => this.placement?.along.get(n.id) ?? 0,
+							(n) => this.placement?.order.get(n.id) ?? 0,
 							(a, b) =>
 								nodeRadius(a, this.display) + nodeRadius(b, this.display) + f.linkDistance * LAYER_GAP,
 						)
@@ -584,7 +603,7 @@ export class GraphRenderer {
 		}
 		if (drag.moved) {
 			// Keep a node where it was dropped in its layer, rather than returning it to its place.
-			if (this.forces.layout === 'layered') this.order = this.layerOrder(0);
+			this.placeLayers(0);
 			drag.node.fx = null;
 			drag.node.fy = null;
 			this.simulation.alphaTarget(0);
