@@ -9,7 +9,7 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint .",
-		"demo": "npm run build && mkdir -p demo-vault/.obsidian/plugins/base-graph && cp main.js manifest.json styles.css demo-vault/.obsidian/plugins/base-graph/"
+		"demo": "npm run build && node copy-to-demo.mjs"
 	},
 	"keywords": [],
 	"license": "0-BSD",
