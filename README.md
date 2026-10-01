@@ -8,6 +8,7 @@ Adds a **Graph** view to [Obsidian Bases](https://help.obsidian.md/bases). The n
 - **Depth:** like the local graph, also show notes up to _n_ links away from the base's results. Choose whether to follow links, backlinks or both.
 - **Groups:** if the base is grouped, each group gets its own colour and appears in the legend. When grouped by a list property, each item in the list is its own group, and a note with several items is split equally between their colours.
 - **Link properties:** draw only the links in chosen properties, such as `parent` or `blocks`, to graph relationships like an org chart or task dependencies. Each property's links get their own colour.
+- **Layouts:** a free force-directed layout, rings by link distance from the base's results, or top down rows for hierarchies such as `parent` links.
 - **Clusters:** optionally pull notes that share a property value together, separately from how they're coloured.
 - **Embeds:** works anywhere a base does, including `![[Projects.base#Graph]]` and inline `base` code blocks.
 
@@ -37,7 +38,7 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | --- | --- |
 | Depth | How many links away from the base's results to include (0–5). |
 | Follow | Follow links, backlinks, or both when expanding depth. |
-| Layout | **Free**, or **Rings by depth** to put the base's notes in the middle and linked notes in a ring for each step away. |
+| Layout | **Free**; **Rings by depth** to put the base's notes in the middle and linked notes in a ring for each step away; or **Top down** for one-way links such as `parent`. In **Top down**, notes that don't link to anything are on the top row, the notes linking to them are on the row below, and so on. Links in both directions are ignored when placing notes. |
 | Include attachments | Include linked attachments when expanding depth. |
 | Link properties | Names of note properties to draw links from, such as `parent` or `related`. Depth follows only these links. Leave empty to use all links. |
 | Include other links | With link properties set, also draw all other links, in the usual colour. |
@@ -48,9 +49,15 @@ These are under the view's settings in the Bases toolbar and are saved in the `.
 | Cluster by group | Cluster notes by the base's groups instead of by a property. Notes in several groups, from a list, are in each of their groups' clusters. |
 | Cluster by | Property whose values the notes are clustered by. Notes without a value aren't clustered. Each cluster gets a faint outline, background and label, in its group's colour if all its notes share one. |
 | Display | Node size, link thickness and opacity, scale links by link count, text fade threshold, arrows, cluster outlines, height when embedded, and the node limit. |
-| Forces | Center, repel and link forces, and link distance. Link distance also sets the gap between rings. Cluster force sets how tightly clusters pull together, and cluster repel force how firmly notes are kept out of clusters they aren't in. |
+| Forces | Center, repel and link forces, and link distance. Link distance also sets the gap between rings, and in **Top down** the gap between rows and the least space between notes on a row. Cluster force sets how tightly clusters pull together, and cluster repel force how firmly notes are kept out of clusters they aren't in. |
 
 ![](docs/BaseSettings.png)
+
+### Top down layout
+
+**Top down** suits links that only go one way, such as a `parent` property, task dependencies, or moons that orbit planets that orbit the Sun. Notes that don't link to anything are on the top row, the notes linking to them are on the row below, and so on. Linked notes are lined up under each other, and with clustering on, each cluster's notes stay together on every row.
+
+![Top down layout of the solar system, clustered by category](docs/TopDown.png)
 
 ### Embedding
 
@@ -110,6 +117,8 @@ src/
     clusterForce.ts       Forces pulling each cluster together and keeping other notes out of it
     clusterShapes.ts      Cluster outlines, backgrounds and labels
     rings.ts              Ring sizes for the rings by depth layout
+    layers.ts             Rows, and the order within them, for the top down layout
+    rowForces.ts          Forces holding notes on their rows and lining up linked notes
     hull.ts               Convex hulls and rounded outlines for cluster shapes
     draw.ts               Canvas drawing
     theme.ts              Reads graph colours from the current theme

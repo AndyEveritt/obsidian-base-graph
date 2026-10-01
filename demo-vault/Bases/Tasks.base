@@ -9,24 +9,50 @@ views:
       direction: ASC
     order:
       - status
+      - project
       - blocked_by
       - blocks
     linkProperties:
       - blocked_by
     showArrows: true
+    clusterBy: note.project
+  - type: base-graph
+    name: Top down
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - status
+      - project
+      - blocked_by
+      - blocks
+    linkProperties:
+      - blocked_by
+    layout: topDown
+    showArrows: true
+    clusterBy: note.project
+    centerForce: 0.51
+    otherLinks: false
   - type: base-graph
     name: Both directions
     groupBy:
       property: status
       direction: ASC
+    order:
+      - status
+      - project
+      - blocked_by
+      - blocks
     linkProperties:
       - blocked_by
       - blocks
     showArrows: true
+    clusterBy: note.project
   - type: table
     name: Table
     order:
       - file.name
       - status
+      - project
       - blocked_by
       - blocks

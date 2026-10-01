@@ -27,7 +27,9 @@ import type { DisplaySettings, ForceSettings } from '../view/options';
 import { forceCluster, forceClusterRepel } from './clusterForce';
 import type { LabelHit } from './clusterShapes';
 import { drawGraph, linkScale, nodeRadius } from './draw';
+import { topDownLayers, topDownOrder } from './layers';
 import { ringRadii } from './rings';
+import { forceLinksX, forceRows } from './rowForces';
 import { readTheme, type ThemeColors } from './theme';
 
 export interface RendererCallbacks {
@@ -52,6 +54,8 @@ const FIT_PADDING = 30;
 const DRAG_THRESHOLD = 4;
 /** Strong enough to keep nodes near their ring, while links still pull them round it. */
 const RING_STRENGTH = 0.8;
+/** Least space between neighbours on a row in the top down layout, as a multiple of the link distance. */
+const ROW_GAP = 1;
 
 /** Canvas force-directed graph with zoom, pan, drag, hover and click. */
 export class GraphRenderer {
@@ -68,6 +72,10 @@ export class GraphRenderer {
 	private clusterLabels: ClusterLabel[] = [];
 	/** Ring radius for each depth level in the ring layout, or empty in the free layout. */
 	private rings: number[] = [];
+	/** Layer of each node by id in the top down layout, or empty in the other layouts. */
+	private layers = new Map<string, number>();
+	/** Place of each node by id within its layer's row, in the top down layout. */
+	private order = new Map<string, number>();
 	/** Cluster labels that link to a note, where the last frame drew them. */
 	private labelHits: LabelHit[] = [];
 	private hoveredLabel: LabelHit | null = null;
@@ -177,8 +185,8 @@ export class GraphRenderer {
 		this.nodes = data.nodes;
 		this.links = data.links;
 		this.clusterLabels = data.clusters;
-		// The ring force reads each node's radius when the nodes are set, so update rings first.
-		this.updateRings();
+		// The ring and layer forces read each node's position when the nodes are set, so update them first.
+		this.updateLayout();
 		this.simulation.nodes(this.nodes);
 		this.linkForce().links(this.links);
 
@@ -256,20 +264,34 @@ export class GraphRenderer {
 		>;
 	}
 
-	private updateRings(): void {
+	private updateLayout(): void {
+		const { layout } = this.forces;
 		this.rings =
-			this.forces.layout === 'rings'
+			layout === 'rings'
 				? ringRadii(this.nodes, (n) => nodeRadius(n, this.display), this.forces.linkDistance)
 				: [];
+		this.layers = layout === 'topDown' ? topDownLayers(this.nodes, this.links) : new Map<string, number>();
+		this.order =
+			layout === 'topDown'
+				? topDownOrder(this.nodes, this.links, this.layers)
+				: new Map<string, number>();
 	}
 
 	private applyForces(): void {
 		const f = this.forces;
-		this.updateRings();
+		this.updateLayout();
 		// The rings do the centring, as the middle one has no radius.
 		const center = f.layout === 'rings' ? 0 : f.centerForce * 0.3;
+		const topDown = f.layout === 'topDown';
 		const degree = (n: GraphNode | string) =>
 			typeof n === 'string' ? 1 : Math.max(1, n.degree);
+		// Capped at 1, as stronger links overshoot and oscillate.
+		const linkStrength = (l: GraphLink) =>
+			Math.min(
+				1,
+				(f.linkForce * linkScale(l.count, this.display)) /
+					Math.min(degree(l.source), degree(l.target)),
+			);
 		this.simulation
 			.force(
 				'link',
@@ -278,18 +300,14 @@ export class GraphRenderer {
 					// Repeated links are shorter as well as stronger, since strength alone only
 					// holds notes more firmly at the same distance.
 					.distance((l) => f.linkDistance / linkScale(l.count, this.display))
-					// Capped at 1, as stronger links overshoot and oscillate.
-					.strength((l) =>
-						Math.min(
-							1,
-							(f.linkForce * linkScale(l.count, this.display)) /
-								Math.min(degree(l.source), degree(l.target)),
-						),
-					),
+					// Still needed in the top down layout to resolve link ends to nodes.
+					.strength(topDown ? 0 : linkStrength),
 			)
+			.force('linksX', topDown ? forceLinksX(() => this.links, linkStrength) : null)
 			.force('charge', forceManyBody<GraphNode>().strength(-f.repelForce * 15))
 			.force('x', forceX<GraphNode>(0).strength(center))
-			.force('y', forceY<GraphNode>(0).strength(center))
+			// The rows set the height in the top down layout, so centring is only sideways.
+			.force('y', topDown ? null : forceY<GraphNode>(0).strength(center))
 			.force(
 				'rings',
 				f.layout === 'rings'
@@ -304,6 +322,19 @@ export class GraphRenderer {
 			.force(
 				'collide',
 				forceCollide<GraphNode>((n) => nodeRadius(n, this.display) + 2),
+			)
+			// Last, as forces run in the order they were added and this one overrides the
+			// others' vertical movement. Removing it when unused keeps it last when re-added.
+			.force(
+				'rows',
+				topDown
+					? forceRows(
+							(n) => (this.layers.get(n.id) ?? 0) * f.linkDistance,
+							(n) => this.order.get(n.id) ?? 0,
+							(a, b) =>
+								nodeRadius(a, this.display) + nodeRadius(b, this.display) + f.linkDistance * ROW_GAP,
+						)
+					: null,
 			);
 	}
 
@@ -536,6 +567,10 @@ export class GraphRenderer {
 			this.canvas.releasePointerCapture(evt.pointerId);
 		}
 		if (drag.moved) {
+			// Keep a node where it was dropped in its row, rather than returning it to its place.
+			if (this.forces.layout === 'topDown') {
+				this.order = topDownOrder(this.nodes, this.links, this.layers, 0);
+			}
 			drag.node.fx = null;
 			drag.node.fy = null;
 			this.simulation.alphaTarget(0);

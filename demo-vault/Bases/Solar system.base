@@ -22,6 +22,25 @@ views:
       - moons
     showArrows: true
   - type: base-graph
+    name: Orbits
+    groupBy:
+      property: category
+      direction: ASC
+    order:
+      - category
+      - orbits
+    linkProperties:
+      - orbits
+    layout: topDown
+    showArrows: true
+    clusterByGroup: true
+    centerForce: 0.04
+    linkDistance: 100
+    repelForce: 10
+    otherLinks: false
+    clusterByGroup: true
+    depth: 1
+  - type: base-graph
     name: Visited by
     groupBy:
       property: category

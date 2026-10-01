@@ -5,10 +5,10 @@ import type {
 } from 'obsidian';
 
 export type LinkDirection = 'both' | 'outgoing' | 'incoming';
-export type Layout = 'free' | 'rings';
+export type Layout = 'free' | 'rings' | 'topDown';
 
 export interface ForceSettings {
-	/** Always free when depth is 0, since there are no rings to put notes on. */
+	/** Rings fall back to free when depth is 0, since there are no rings to put notes on. */
 	layout: Layout;
 	centerForce: number;
 	repelForce: number;
@@ -81,6 +81,7 @@ export const DEPTH_RANGE = SLIDERS.depth;
 const LAYOUTS: Record<Layout, string> = {
 	free: 'Free',
 	rings: 'Rings by depth',
+	topDown: 'Top down',
 };
 
 const DIRECTIONS: Record<LinkDirection, string> = {
@@ -115,7 +116,6 @@ export function getViewOptions(config: BasesViewConfig): BasesAllOptions[] {
 			displayName: 'Layout',
 			default: 'free',
 			options: LAYOUTS,
-			shouldHide: depthIsZero,
 		},
 		{
 			type: 'toggle',
@@ -244,7 +244,9 @@ function readLinkProperties(config: BasesViewConfig): string[] {
 }
 
 function readLayout(config: BasesViewConfig, depth: number): Layout {
-	return depth > 0 && config.get('layout') === 'rings' ? 'rings' : 'free';
+	const layout = config.get('layout');
+	if (layout === 'topDown') return 'topDown';
+	return depth > 0 && layout === 'rings' ? 'rings' : 'free';
 }
 
 function readBool(
